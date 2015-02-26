@@ -50,88 +50,7 @@ my_bin_dir=/mnt/lustre1/users/lazar/APE_METH_bin/
 
 # 1.5) Map first 250,000 reads and generate mbias plots to 
 #      judge trimming
-
-# Gorilla
-./bin/align_top250000.sh \
-  gorilla_gorGor3 \
-  gorilla_gorGor3 \
-  ADAPT_TRIM/Gorilla_FCC02G0ACXX_L7_1_val_1.fq.gz \
-  ADAPT_TRIM/Gorilla_FCC02G0ACXX_L7_2_val_2.fq.gz \
-  TEST_MAP
-
-./bin/align_top250000.sh \
-  gorilla_gorGor3 \
-  /u0/dbase/genomes/gorilla_gorGor3 \
-  ADAPT_TRIM/Gorilla_FCC02G0ACXX_L8_1_val_1.fq.gz \
-  ADAPT_TRIM/Gorilla_FCC02G0ACXX_L8_2_val_2.fq.gz \
-  TEST_MAP
-
-./bin/align_top250000.sh \
-  gorilla_gorGor3 \
-  /u0/dbase/genomes/gorilla_gorGor3 \
-  ADAPT_TRIM/Gorilla_FCD0GB2ACXX_L6_1_val_1.fq.gz \
-  ADAPT_TRIM/Gorilla_FCD0GB2ACXX_L6_2_val_2.fq.gz \
-  TEST_MAP
-
-# Chimp
-./bin/align_top250000.sh \
-  chimp_panTro4 \
-  /u0/dbase/genomes/chimp_panTro4 \
-  ADAPT_TRIM/4369_FCC02G0ACXX_L2_1_val_1.fq.gz \
-  ADAPT_TRIM/4369_FCC02G0ACXX_L2_2_val_2.fq.gz \
-  TEST_MAP
-
-./bin/align_top250000.sh \
-  chimp_panTro4 \
-  /u0/dbase/genomes/chimp_panTro4 \
-  ADAPT_TRIM/4369_FCC02G0ACXX_L3_1_val_1.fq.gz \
-  ADAPT_TRIM/4369_FCC02G0ACXX_L3_2_val_2.fq.gz \
-  TEST_MAP
-
-# Orangutan
-./bin/align_top250000.sh \
-  orangutan_ponAbe2 \
-  /u0/dbase/genomes/orangutan_ponAbe2 \
-  ADAPT_TRIM/Dunja_FCC0CGEACXX_L4_1_val_1.fq.gz \
-  ADAPT_TRIM/Dunja_FCC0CGEACXX_L4_2_val_2.fq.gz \
-  TEST_MAP
-
-./bin/align_top250000.sh \
-  orangutan_ponAbe2 \
-  /u0/dbase/genomes/orangutan_ponAbe2 \
-  ADAPT_TRIM/Dunja_FCC0CGUACXX_L4_1_val_1.fq.gz \
-  ADAPT_TRIM/Dunja_FCC0CGUACXX_L4_2_val_2.fq.gz \
-  TEST_MAP
-
-./bin/align_top250000.sh \
-  orangutan_ponAbe2 \
-  /u0/dbase/genomes/orangutan_ponAbe2 \
-  ADAPT_TRIM/Dunja_FCD0JPEACXX_L1_1_val_1.fq.gz \
-  ADAPT_TRIM/Dunja_FCD0JPEACXX_L1_2_val_2.fq.gz \
-  TEST_MAP
-
-# Human
-./bin/align_top250000.sh \
-  human_hg19_new \
-  /u0/dbase/genomes/human_hg19_new/hg19_chroms.fa \
-  ADAPT_TRIM/Julia_FCC02FUACXX_L6_1_val_1.fq.gz \
-  ADAPT_TRIM/Julia_FCC02FUACXX_L6_2_val_2.fq.gz \
-  TEST_MAP
-
-./bin/align_top250000.sh \
-  human_hg19_new \
-  /u0/dbase/genomes/human_hg19_new/hg19_chroms.fa \
-  ADAPT_TRIM/Julia_FCC02FUACXX_L8_1_val_1.fq.gz \
-  ADAPT_TRIM/Julia_FCC02FUACXX_L8_2_val_2.fq.gz \
-  TEST_MAP
-
-# Rhesus
-./bin/align_top250000.sh \
-  rhesus_v7 \
-  /u0/dbase/genomes/rhesus_v7/MaSuRCA_Rhesus_Genome_v7_20130927.fasta \
-  ADAPT_TRIM/Rhesus_DNA130327BF_25184-0_R1_val_1.fq.gz \
-  ADAPT_TRIM/Rhesus_DNA130327BF_25184-0_R2_val_2.fq.gz \
-  TEST_MAP
+./APE_METH_bin/align_top250000_all.sh
 
 # Rename mbias files
 for f in $(ls TEST_MAP/*mbias*/*)
@@ -140,7 +59,9 @@ for f in $(ls TEST_MAP/*mbias*/*)
 done
 rm -r TEST_MAP/*mbias.tsv
 
-# 1.5) Trim reads based on mbias plots and quality scores
+# **************HERE******************** #
+
+# 1.6) Trim reads based on mbias plots and quality scores
 mkdir TRIMMED
 /u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
   ADAPT_TRIM/4369_FCC02G0ACXX_L2_1_val_1.fq.gz > TRIMMED/4369_FCC02G0ACXX_L2_1_val_1.fq
