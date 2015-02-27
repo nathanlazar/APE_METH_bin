@@ -21,10 +21,10 @@
 ulimit -n 4096
 
 dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH
-cores=12
 bsmooth_dir=/mnt/lustre1/users/lazar/GIBBONS/VOK_GENOME/bin/bsmooth-align-0.8.1/bin
+cores=12
 process=$1
-genome=$(echo $2 | cut -d'.' -f1)
+genome=$2
 reads_1=$3
 reads_2=$4
 out_dir=$5
@@ -41,8 +41,8 @@ echo $reads_2
 
 #Make drive for each set of mapped reads
 ###################################
-if [ ! -d $out_dir/$name0 ]
-  then mkdir $out_dir/$name0
+if [ ! -d $dir/$out_dir/$name0 ]
+  then mkdir $dir/$out_dir/$name0
 fi
 
 #Build Bowtie2 index:
@@ -55,14 +55,14 @@ fi
 $bsmooth_dir/bswc_bowtie2_align.pl \
   --bowtie2=/mnt/lustre1/users/lazar/bin/bowtie2-2.2.3/bowtie2 \
   --samtools=/mnt/lustre1/users/lazar/bin/samtools-0.1.19 \
-  --out=$out_dir/$name0/$name0.ev \
-  --sam=$out_dir/$name0/$name0 \
-  --metrics=$out_dir/$name0/$name0.bt2metrics \
-  --stderr=$out_dir/$name0/$name0.stderr \
+  --out=$dir/$out_dir/$name0/$name0.ev \
+  --sam=$dir/$out_dir/$name0/$name0 \
+  --metrics=$dir/$out_dir/$name0/$name0.bt2metrics \
+  --stderr=$dir/$out_dir/$name0/$name0.stderr \
+-- $dir/$(echo $genome | cut -d'.' -f1) \
 -- $dir/$genome \
--- $dir/$genome.fa \
 -- --threads $cores \
--- $out_dir/$reads_1 \
--- $out_dir/$reads_2
+-- $dir/$out_dir/$reads_1 \
+-- $dir/$out_dir/$reads_2
 
 echo MAPPING COMPLETE

@@ -19,10 +19,10 @@
 #     50
 
 dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH
-bin_dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/gibbon_meth
+bin_dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin
+bsmooth_dir=/mnt/lustre1/users/lazar/bin/bsmooth-align-0.8.1/bin
 cores=24
-bsmooth_dir=/mnt/lustre1/users/lazar/GIBBONS/VOK_GENOME/bin/bsmooth-align-0.8.1/bin
-genome=$(echo $1 | cut -d'.' -f1)
+genome=$1
 reads_1=$2
 reads_2=$3
 out_dir=$4
@@ -56,23 +56,23 @@ fi
 # should already be done
 
 # Split up reads 
-zcat $reads_1 | split -d -a5 -l $chunk - $out_dir/$name1.split_
-zcat $reads_2 | split -d -a5 -l $chunk - $out_dir/$name2.split_
+zcat $dir/$reads_1 | split -d -a5 -l $chunk - $dir/$out_dir/$name1.split_
+zcat $dir/$reads_2 | split -d -a5 -l $chunk - $dir/$out_dir/$name2.split_
 
 # Rename split files to remove leading zeros
-for f in $(ls $out_dir/$name1.split_*)
+for f in $(ls $dir/$out_dir/$name1.split_*)
   do new=$(echo $f | sed -r 's/_0+/_/g')
   mv $f $new
 done
-for f in $(ls $out_dir/$name2.split_*)
+for f in $(ls $dir/$out_dir/$name2.split_*)
   do new=$(echo $f | sed -r 's/_0+/_/g')
   mv $f $new
 done
-mv $out_dir/$name1.split_ $out_dir/$name1.split_0
-mv $out_dir/$name2.split_ $out_dir/$name2.split_0
+mv $dir/$out_dir/$name1.split_ $dir/$out_dir/$name1.split_0
+mv $dir/$out_dir/$name2.split_ $dir/$out_dir/$name2.split_0
 
 # Count the number of files 
-proc=$(ls $out_dir/$name1.split* | wc -l)
+proc=$(ls $dir/$out_dir/$name1.split* | wc -l)
 
 # Make HTCondor submit script to spawn children mapping reads
 # .. only submit up to batch jobs at a time ..
@@ -85,33 +85,31 @@ while (( j * batch < proc ))
   fi
   echo 'ID=$(Cluster).$(Process)
     n=$$(['$j' * '$batch' + $(Process)])
-    dir='$dir'
-    bin_dir='$bin_dir'
     should_transfer_files = IF_NEEDED
     when_to_transfer_output = ON_EXIT
-    executable=$(bin_dir)/align_par.sh
-    arguments = $(Process)' $genome.fa $name1.split_'$(n)' $name2.split_'$(n)' $out_dir '$$(Cpus)
-    output=$(dir)/'$out_dir/$name0.'out.tmp.$(Process).txt
-    error=$(dir)/'$out_dir/$name0.'stderr.$(ID)
-    log=$(dir)/'$out_dir/$name0.'log.$(ID)
+    executable='$bin_dir'/align_par.sh
+    arguments = $(Process)' $genome $name1.split_'$(n)' $name2.split_'$(n)' $out_dir '$$(Cpus)
+    output='$dir/$out_dir/$name0.'out.tmp.$(Process).txt
+    error='$dir/$out_dir/$name0.'stderr.$(ID)
+    log='$dir/$out_dir/$name0.'log.$(ID)
     request_cpus = 16
     request_memory = 12 GB
     request_disk = 1 MB
-    queue '$q > $out_dir/$name0.align_par.submit.$j
+    queue '$q > $dir/$out_dir/$name0.align_par.submit.$j
 
   # Submit scripts to launch children for mapping
-  condor_submit $out_dir/$name0.align_par.submit.$j
+  condor_submit $dir/$out_dir/$name0.align_par.submit.$j
 
   # Wait for each batch to be done before launching more
   # Each job writes out 'MAPPING COMPLETE' when it's done, 
   # we wait for this as the last line of the output file
   n=0
   while (( n < q )) 
-    do f=$out_dir/$name0.out.tmp.$n.txt
+    do f=$dir/$out_dir/$name0.out.tmp.$n.txt
       while [ "$(tail -n 1 $f)" != "MAPPING COMPLETE" ]
           do sleep 10; done
       m=$(( (j * batch) + n ))
-      mv $f $out_dir/$name0.out.$m.txt      
+      mv $f $dir/$out_dir/$name0.out.$m.txt      
     n=$((n + 1))
     done
   j=$((j + 1))
@@ -120,34 +118,32 @@ done
 # Make submit script to combine results from children and 
 # run sorting of evidence and tabulation of methylation counts
 echo 'ID=$(Cluster).$(Process)
-  dir='$dir'
-  bin_dir='$bin_dir'
   should_transfer_files = IF_NEEDED
   when_to_transfer_output = ON_EXIT
-  executable=$(bin_dir)/combine_par.sh
-  arguments = '$name0 $genome.fa $out_dir' 
-  output=$(dir)/'$out_dir/$name0.'comb.out.$(ID)
-  error=$(dir)/'$out_dir/$name0.'comb.stderr.$(ID)
-  log=$(dir)/'$out_dir/$name0.'comb.log.$(ID)
+  executable='$bin_dir'/combine_par.sh
+  arguments = '$name0 $genome $out_dir' 
+  output='$dir/$out_dir/$name0.'comb.out.$(ID)
+  error='$dir/$out_dir/$name0.'comb.stderr.$(ID)
+  log='$dir/$out_dir/$name0.'comb.log.$(ID)
   request_cpus = 24
   request_memory = 64 GB
   request_disk = 2 GB
-  queue 1' > $out_dir/$name0.comb.submit
+  queue 1' > $dir/$out_dir/$name0.comb.submit
 
 # Submit the script
-condor_submit $out_dir/$name0.comb.submit
+condor_submit $dir/$out_dir/$name0.comb.submit
 
 # Wait for everything to complete the output file from the 
 # last script will end with 'COMPLETE'
-while [ "$(tail -n 1 $out_dir/$name0.comb.out.*)" != "COMPLETE" ]
+while [ "$(tail -n 1 $dir/$out_dir/$name0.comb.out.*)" != "COMPLETE" ]
   do sleep 10
 done
 
 # Remove temporary files
-mv $out_dir/mbias.tsv $out_dir/$name0.mbias.tsv
-#rm -r $out_dir/*split*
-#rm -r $out_dir/ev
-#rm -r $out_dir/tsv
+mv $dir/$out_dir/mbias.tsv $dir/$out_dir/$name0.mbias.tsv
+#rm -r $dir/$out_dir/*split*
+#rm -r $dir/$out_dir/ev
+#rm -r $dir/$out_dir/tsv
 
 # TODO:
 # dir could be an input or the current directory and 

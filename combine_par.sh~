@@ -1,0 +1,62 @@
+#!/bin/bash
+
+# Combine evidence from all of children mappers into one ev directory
+# Sort and tabulate this
+
+# nathan dot lazar at gmail dot com
+
+# Usage:
+#   combine_par.sh 
+#     <name>
+#     <genome.fa>
+#     <out_dir>
+
+# Example:
+#   combine_par.sh \
+#     Gorilla
+#     gorilla_gorGor3/gorilla_gorGor3.fa \
+#     MAPPED
+
+#Increase the number of open files allowed
+ulimit -n 4096
+
+dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH
+cores=24
+bsmooth_dir=/mnt/lustre1/users/lazar/GIBBONS/VOK_GENOME/bin/bsmooth-align-0.8.1/bin
+name0=$1
+genome=$(echo $2 | cut -d'.' -f1)
+out_dir=$dir/$3
+
+# Combine evidence files
+mkdir $out_dir/ev
+for d in $(ls -d $out_dir/$name0.split_*/$name0.split_*.ev)
+  do for f in $(ls $d/*.ev.tsv)
+    do chr=$(basename $f | sed 's/.ev.tsv//')
+    if [ ! -f $out_dir/ev/$chr ]
+      then touch $out_dir/ev/$chr.ev.tsv
+    fi
+    cat $f >> $out_dir/ev/$chr.ev.tsv
+  done
+done
+
+#Sort evidence directory
+$bsmooth_dir/bsev_sort.pl \
+  --ev=$out_dir/ev \
+  --out=$out_dir/tsv \
+  --num-threads=$cores
+
+#Tabulate
+$bsmooth_dir/bsev_tabulate.pl \
+  --cpg=$out_dir/$name0.cpg10 \
+  --mapq-min=10 \
+  --num-threads=$cores \
+-- $out_dir/tsv/ \
+-- $dir/$genome.fa
+
+#Create M-bias files
+$bsmooth_dir/bsev_mbias.pl \
+  --evidence=$out_dir/ev \
+  --output=$out_dir/ \
+  --num-threads=$cores
+
+echo COMPLETE

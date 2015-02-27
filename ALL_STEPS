@@ -50,7 +50,10 @@ my_bin_dir=/mnt/lustre1/users/lazar/APE_METH_bin/
 
 # 1.5) Map first 250,000 reads and generate mbias plots to 
 #      judge trimming
+mkdir TEST_MAP
 ./APE_METH_bin/align_top250000_all.sh
+
+# **************HERE******************** #
 
 # Rename mbias files
 for f in $(ls TEST_MAP/*mbias*/*)
@@ -58,8 +61,6 @@ for f in $(ls TEST_MAP/*mbias*/*)
   mv $f $name
 done
 rm -r TEST_MAP/*mbias.tsv
-
-# **************HERE******************** #
 
 # 1.6) Trim reads based on mbias plots and quality scores
 mkdir TRIMMED
