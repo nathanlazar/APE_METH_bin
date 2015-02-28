@@ -28,21 +28,21 @@ genome=$2
 out_dir=$3
 
 # Combine evidence files
-mkdir $dir/$out_dir/ev
+mkdir $dir/$out_dir/$name0.ev
 for d in $(ls -d $dir/$out_dir/$name0.split_*/$name0.split_*.ev)
   do for f in $(ls $d/*.ev.tsv)
     do chr=$(basename $f | sed 's/.ev.tsv//')
-    if [ ! -f $dir/$out_dir/ev/$chr ]
-      then touch $dir/$out_dir/ev/$chr.ev.tsv
+    if [ ! -f $dir/$out_dir/$name0.ev/$chr ]
+      then touch $dir/$out_dir/$name0.ev/$chr.ev.tsv
     fi
-    cat $f >> $dir/$out_dir/ev/$chr.ev.tsv
+    cat $f >> $dir/$out_dir/$name0.ev/$chr.ev.tsv
   done
 done
 
 #Sort evidence directory
 $bsmooth_dir/bsev_sort.pl \
-  --ev=$dir/$out_dir/ev \
-  --out=$dir/$out_dir/tsv \
+  --ev=$dir/$out_dir/$name0.ev \
+  --out=$dir/$out_dir/$name0.tsv \
   --num-threads=$cores
 
 #Tabulate
@@ -50,13 +50,15 @@ $bsmooth_dir/bsev_tabulate.pl \
   --cpg=$dir/$out_dir/$name0.cpg10 \
   --mapq-min=10 \
   --num-threads=$cores \
--- $dir/$out_dir/tsv/ \
+-- $dir/$out_dir/$name0.tsv/ \
 -- $dir/$genome
+
+mkdir $dir/out_dir/$name0
 
 #Create M-bias files
 $bsmooth_dir/bsev_mbias.pl \
-  --evidence=$dir/$out_dir/ev \
-  --output=$dir/$out_dir/ \
+  --evidence=$dir/$out_dir/$name0.ev \
+  --output=$dir/$out_dir/$name0/ \
   --num-threads=$cores
 
 echo COMPLETE

@@ -20,7 +20,7 @@
 bin_dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin
 dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH
 
-species=$1
+genome=$1
 reads_1=$2
 reads_2=$3
 out_dir=$4
@@ -45,7 +45,7 @@ get_test_reads() {
 #######################################
 align() {
   $bin_dir/batch_align.sh \
-    $species \
+    $genome \
     $out_dir/$name1.test.fq \
     $out_dir/$name2.test.fq \
     $out_dir \

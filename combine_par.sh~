@@ -21,42 +21,42 @@
 ulimit -n 4096
 
 dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH
-cores=24
 bsmooth_dir=/mnt/lustre1/users/lazar/GIBBONS/VOK_GENOME/bin/bsmooth-align-0.8.1/bin
+cores=24
 name0=$1
-genome=$(echo $2 | cut -d'.' -f1)
-out_dir=$dir/$3
+genome=$2
+out_dir=$3
 
 # Combine evidence files
-mkdir $out_dir/ev
-for d in $(ls -d $out_dir/$name0.split_*/$name0.split_*.ev)
+mkdir $dir/$out_dir/$name0.ev
+for d in $(ls -d $dir/$out_dir/$name0.split_*/$name0.split_*.ev)
   do for f in $(ls $d/*.ev.tsv)
     do chr=$(basename $f | sed 's/.ev.tsv//')
-    if [ ! -f $out_dir/ev/$chr ]
-      then touch $out_dir/ev/$chr.ev.tsv
+    if [ ! -f $dir/$out_dir/$name0.ev/$chr ]
+      then touch $dir/$out_dir/$name0.ev/$chr.ev.tsv
     fi
-    cat $f >> $out_dir/ev/$chr.ev.tsv
+    cat $f >> $dir/$out_dir/$name0.ev/$chr.ev.tsv
   done
 done
 
 #Sort evidence directory
 $bsmooth_dir/bsev_sort.pl \
-  --ev=$out_dir/ev \
-  --out=$out_dir/tsv \
+  --ev=$dir/$out_dir/$name0.ev \
+  --out=$dir/$out_dir/$name0.tsv \
   --num-threads=$cores
 
 #Tabulate
 $bsmooth_dir/bsev_tabulate.pl \
-  --cpg=$out_dir/$name0.cpg10 \
+  --cpg=$dir/$out_dir/$name0.cpg10 \
   --mapq-min=10 \
   --num-threads=$cores \
--- $out_dir/tsv/ \
--- $dir/$genome.fa
+-- $dir/$out_dir/$name0.tsv/ \
+-- $dir/$genome
 
 #Create M-bias files
 $bsmooth_dir/bsev_mbias.pl \
-  --evidence=$out_dir/ev \
-  --output=$out_dir/ \
+  --evidence=$dir/$out_dir/$name0.ev \
+  --output=$dir/$out_dir/ \
   --num-threads=$cores
 
 echo COMPLETE
