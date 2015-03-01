@@ -141,9 +141,9 @@ done
 
 # Remove temporary files
 mv $dir/$out_dir/mbias.tsv $dir/$out_dir/$name0.mbias.tsv
-#rm -r $dir/$out_dir/*split*
-#rm -r $dir/$out_dir/ev
-#rm -r $dir/$out_dir/tsv
+rm -r $dir/$out_dir/*split*
+rm -r $dir/$out_dir/ev
+rm -r $dir/$out_dir/tsv
 
 # TODO:
 # dir could be an input or the current directory and 

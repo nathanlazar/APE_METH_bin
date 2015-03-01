@@ -7,7 +7,7 @@
 dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/
 read_dir=$dir/RAW_READS/
 big_bin_dir=/mnt/lustre1/users/lazar/bin/
-my_bin_dir=/mnt/lustre1/users/lazar/APE_METH_bin/
+my_bin_dir=$dir/APE_METH_bin/
 
 # Versions:
 # java version "1.7.0_65"
@@ -15,6 +15,7 @@ my_bin_dir=/mnt/lustre1/users/lazar/APE_METH_bin/
 # trim_galore_v0.3.7
 # cutadapt-1.7.1
 # bsmooth-align-0.8.1
+# seqtk: 1.0-r77-dirty
 
 # 1) Map bisulfite reads to gibbon, human, chimp, gorilla, orangutan and rhesus genomes.
 
@@ -30,12 +31,12 @@ my_bin_dir=/mnt/lustre1/users/lazar/APE_METH_bin/
 # directories inside of RAW_READs named Gibbbon, Human, Orangutan, Gorilla, Chimp, Rhesus
 
 # 1.2) Run FastQC on all the raw reads in parallel with HTCondor
-./APE_METH_bin/fastqc_condor.sh RAW_READS/Gibbon FASTQC_RAW/Gibbon
-./APE_METH_bin/fastqc_condor.sh RAW_READS/Human FASTQC_RAW/Human
-./APE_METH_bin/fastqc_condor.sh RAW_READS/Orangutan FASTQC_RAW/Orangutan
-./APE_METH_bin/fastqc_condor.sh RAW_READS/Gorilla FASTQC_RAW/Gorilla
-./APE_METH_bin/fastqc_condor.sh RAW_READS/Chimp FASTQC_RAW/Chimp
-./APE_METH_bin/fastqc_condor.sh RAW_READS/Rhesus FASTQC_RAW/Rhesus
+./$my_bin_dir/fastqc_condor.sh RAW_READS/Gibbon FASTQC_RAW/Gibbon
+./$my_bin_dir/fastqc_condor.sh RAW_READS/Human FASTQC_RAW/Human
+./$my_bin_dir/fastqc_condor.sh RAW_READS/Orangutan FASTQC_RAW/Orangutan
+./$my_bin_dir/fastqc_condor.sh RAW_READS/Gorilla FASTQC_RAW/Gorilla
+./$my_bin_dir/fastqc_condor.sh RAW_READS/Chimp FASTQC_RAW/Chimp
+./$my_bin_dir/fastqc_condor.sh RAW_READS/Rhesus FASTQC_RAW/Rhesus
 
 # 1.3) Trim adapters:
 #      - removes base calls with a Phred score of 20 or lower (assuming Sanger encoding)
@@ -43,81 +44,38 @@ my_bin_dir=/mnt/lustre1/users/lazar/APE_METH_bin/
 #      - removes sequences that got shorter than 20 bp
 #      - runs fastqc on the resulting reads
 #      - stores results in ADAPT_TRIM
-./APE_METH_bin/trim_adapt_condor.sh RAW_READS ADAPT_TRIM
+./$my_bin_dir/trim_adapt_condor.sh RAW_READS ADAPT_TRIM
 
 # 1.4) Run FastQC on the trimmed reads
-./APE_METH_bin/fastqc_condor.sh ADAPT_TRIM FASTQC_TRIM
+./$my_bin_dir/fastqc_condor.sh ADAPT_TRIM FASTQC_TRIM
 
 # 1.5) Map first 250,000 reads and generate mbias plots to 
 #      judge trimming
 mkdir TEST_MAP
-./APE_METH_bin/align_top250000_all.sh
-
-# **************HERE******************** #
-
-# Rename mbias files
-for f in $(ls TEST_MAP/*mbias*/*)
-  do name=$(echo $f | sed 's/.tsv\/mbias.tsv//')
-  mv $f $name
+./$my_bin_dir/align_top250000_all.sh
+# This outputs files <read_name>_val_1/mbias.tsv
+# Rename these:
+for f in $(ls TEST_MAP/*_val_1/mbias.tsv)
+  do new=$(echo $f | sed 's:val_1/mbias.tsv:test_mbias.tsv:')
+  mv $f $new
 done
-rm -r TEST_MAP/*mbias.tsv
 
-# 1.6) Trim reads based on mbias plots and quality scores
+# 1.5) Generate plots to determine trimming
+Rscript ./$my_bin_dir/test_map_mbias_plots.R
+
+# 1.6) Trim reads uniformly based on mbias plots and quality scores
 mkdir TRIMMED
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
-  ADAPT_TRIM/4369_FCC02G0ACXX_L2_1_val_1.fq.gz > TRIMMED/4369_FCC02G0ACXX_L2_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/4369_FCC02G0ACXX_L2_2_val_2.fq.gz > TRIMMED/4369_FCC02G0ACXX_L2_2_val_2.fq
+./$my_bin_dir/trim_uniform.sh ADAPT_TRIM TRIMMED 5 5
 
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
-  ADAPT_TRIM/4369_FCC02G0ACXX_L3_1_val_1.fq.gz > TRIMMED/4369_FCC02G0ACXX_L3_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/4369_FCC02G0ACXX_L3_2_val_2.fq.gz > TRIMMED/4369_FCC02G0ACXX_L3_2_val_2.fq
+# Gzip results
+for f in $(ls TRIMMED/*.fq); do gzip $f; done
 
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 15 \
-  ADAPT_TRIM/Dunja_FCC0CGEACXX_L4_1_val_1.fq.gz > TRIMMED/Dunja_FCC0CGEACXX_L4_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
-  ADAPT_TRIM/Dunja_FCC0CGEACXX_L4_2_val_2.fq.gz > TRIMMED/Dunja_FCC0CGEACXX_L4_2_val_2.fq
+# 1.7) Map trimmed reads.
+mkdir MAPPED
+./$my_bin_dir/align_all.sh
 
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Dunja_FCC0CGUACXX_L4_1_val_1.fq.gz > TRIMMED/Dunja_FCC0CGUACXX_L4_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Dunja_FCC0CGUACXX_L4_2_val_2.fq.gz > TRIMMED/Dunja_FCC0CGUACXX_L4_2_val_2.fq
+#** HERE **#
 
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Dunja_FCD0JPEACXX_L1_1_val_1.fq.gz > TRIMMED/Dunja_FCD0JPEACXX_L1_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Dunja_FCD0JPEACXX_L1_2_val_2.fq.gz > TRIMMED/Dunja_FCD0JPEACXX_L1_2_val_2.fq
-
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
-  ADAPT_TRIM/Gorilla_FCC02G0ACXX_L7_1_val_1.fq.gz > TRIMMED/Gorilla_FCC02G0ACXX_L7_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Gorilla_FCC02G0ACXX_L7_2_val_2.fq.gz > TRIMMED/Gorilla_FCC02G0ACXX_L7_2_val_2.fq
-
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
-  ADAPT_TRIM/Gorilla_FCC02G0ACXX_L8_1_val_1.fq.gz > TRIMMED/Gorilla_FCC02G0ACXX_L8_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Gorilla_FCC02G0ACXX_L8_2_val_2.fq.gz > TRIMMED/Gorilla_FCC02G0ACXX_L8_2_val_2.fq
-
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
-  ADAPT_TRIM/Gorilla_FCD0GB2ACXX_L6_1_val_1.fq.gz > TRIMMED/Gorilla_FCD0GB2ACXX_L6_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Gorilla_FCD0GB2ACXX_L6_2_val_2.fq.gz > TRIMMED/Gorilla_FCD0GB2ACXX_L6_2_val_2.fq
-
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
-  ADAPT_TRIM/Julia_FCC02FUACXX_L6_1_val_1.fq.gz > TRIMMED/Julia_FCC02FUACXX_L6_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Julia_FCC02FUACXX_L6_2_val_2.fq.gz > TRIMMED/Julia_FCC02FUACXX_L6_2_val_2.fq
-
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 10 \
-  ADAPT_TRIM/Julia_FCC02FUACXX_L8_1_val_1.fq.gz > TRIMMED/Julia_FCC02FUACXX_L8_1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Julia_FCC02FUACXX_L8_2_val_2.fq.gz > TRIMMED/Julia_FCC02FUACXX_L8_2_val_2.fq
-
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Rhesus_DNA130327BF_25184-0_R1_val_1.fq.gz > TRIMMED/Rhesus_DNA130327BF_25184-0_R1_val_1.fq
-/u0/backup/moloch_home/lazar/GIBBON_METH/bin/seqtk-master/seqtk trimfq -b 5 -e 5 \
-  ADAPT_TRIM/Rhesus_DNA130327BF_25184-0_R2_val_2.fq.gz > TRIMMED/Rhesus_DNA130327BF_25184-0_R2_val_2.fq
 
 # 1.6) Combine reads for each species
 

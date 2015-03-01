@@ -65,4 +65,4 @@ clean_up() {
 ############################
 get_test_reads
 align  
-#clean_up
+clean_up
