@@ -31,12 +31,12 @@ my_bin_dir=$dir/APE_METH_bin/
 # directories inside of RAW_READs named Gibbbon, Human, Orangutan, Gorilla, Chimp, Rhesus
 
 # 1.2) Run FastQC on all the raw reads in parallel with HTCondor
-./$my_bin_dir/fastqc_condor.sh RAW_READS/Gibbon FASTQC_RAW/Gibbon
-./$my_bin_dir/fastqc_condor.sh RAW_READS/Human FASTQC_RAW/Human
-./$my_bin_dir/fastqc_condor.sh RAW_READS/Orangutan FASTQC_RAW/Orangutan
-./$my_bin_dir/fastqc_condor.sh RAW_READS/Gorilla FASTQC_RAW/Gorilla
-./$my_bin_dir/fastqc_condor.sh RAW_READS/Chimp FASTQC_RAW/Chimp
-./$my_bin_dir/fastqc_condor.sh RAW_READS/Rhesus FASTQC_RAW/Rhesus
+$my_bin_dir/fastqc_condor.sh RAW_READS/Gibbon FASTQC_RAW/Gibbon
+$my_bin_dir/fastqc_condor.sh RAW_READS/Human FASTQC_RAW/Human
+$my_bin_dir/fastqc_condor.sh RAW_READS/Orangutan FASTQC_RAW/Orangutan
+$my_bin_dir/fastqc_condor.sh RAW_READS/Gorilla FASTQC_RAW/Gorilla
+$my_bin_dir/fastqc_condor.sh RAW_READS/Chimp FASTQC_RAW/Chimp
+$my_bin_dir/fastqc_condor.sh RAW_READS/Rhesus FASTQC_RAW/Rhesus
 
 # 1.3) Trim adapters:
 #      - removes base calls with a Phred score of 20 or lower (assuming Sanger encoding)
@@ -44,15 +44,15 @@ my_bin_dir=$dir/APE_METH_bin/
 #      - removes sequences that got shorter than 20 bp
 #      - runs fastqc on the resulting reads
 #      - stores results in ADAPT_TRIM
-./$my_bin_dir/trim_adapt_condor.sh RAW_READS ADAPT_TRIM
+$my_bin_dir/trim_adapt_condor.sh RAW_READS ADAPT_TRIM
 
 # 1.4) Run FastQC on the trimmed reads
-./$my_bin_dir/fastqc_condor.sh ADAPT_TRIM FASTQC_TRIM
+$my_bin_dir/fastqc_condor.sh ADAPT_TRIM FASTQC_TRIM
 
 # 1.5) Map first 250,000 reads and generate mbias plots to 
 #      judge trimming
 mkdir TEST_MAP
-./$my_bin_dir/align_top250000_all.sh
+$my_bin_dir/align_top250000_all.sh
 # This outputs files <read_name>_val_1/mbias.tsv
 # Rename these:
 for f in $(ls TEST_MAP/*_val_1/mbias.tsv)
@@ -61,18 +61,18 @@ for f in $(ls TEST_MAP/*_val_1/mbias.tsv)
 done
 
 # 1.5) Generate plots to determine trimming
-Rscript ./$my_bin_dir/test_map_mbias_plots.R
+Rscript $my_bin_dir/test_map_mbias_plots.R
 
 # 1.6) Trim reads uniformly based on mbias plots and quality scores
 mkdir TRIMMED
-./$my_bin_dir/trim_uniform.sh ADAPT_TRIM TRIMMED 5 5
+$my_bin_dir/trim_uniform.sh ADAPT_TRIM TRIMMED 5 5
 
 # Gzip results
-for f in $(ls TRIMMED/*.fq); do gzip $f; done
+$my_bin_dir/gzip_par.sh
 
 # 1.7) Map trimmed reads.
 mkdir MAPPED
-./$my_bin_dir/align_all.sh
+$my_bin_dir/align_all.sh
 
 #** HERE **#
 

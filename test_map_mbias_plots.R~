@@ -44,9 +44,7 @@ mk_plot <- function(data) {
          color="Sequencing\nbatch") + 
     annotation_custom(grobTree(textGrob("Dotted lines show trimming", 
                                         x=0.1,  y=0.1, hjust=0,
-                                        gp=gpar(fontsize=16)))) +
-    theme(axis.title = element_text(size = rel(2)),
-          plot.title = element_text(size = rel(3)))
+                                        gp=gpar(fontsize=12)))) 
   # This complex annotation allows for relative location
   p
 }
@@ -66,10 +64,10 @@ orangutan.p <- mk_plot(orangutan.df)
 human.p <- mk_plot(human.df)
 rhesus.p <- mk_plot(rhesus.df)
 
-png('test_map_mbias.png', height=480/1.618)
+png('test_map_mbias.png', height=(480*1.5)/1.618, width=480*1.5)
 all.p
 dev.off()
 
-pdf('test_map_mbias.pdf', height=7/1.618)
+pdf('test_map_mbias.pdf', height=(7*1.5)/1.618, width=7*1.5)
 all.p
 dev.off()

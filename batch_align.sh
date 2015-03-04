@@ -40,9 +40,9 @@ echo $out_dir
 echo $chunk
 echo $batch
 
-name0=$(echo $reads_1 | cut -d'/' -f2 | cut -d'.' -f1 | sed 's/_1//')
-name1=$(echo $reads_1 | cut -d'/' -f2 | cut -d'.' -f1)
-name2=$(echo $reads_2 | cut -d'/' -f2 | cut -d'.' -f1)
+name0=$(basename $reads_1 | cut -d'.' -f1 | sed 's/_1//')
+name1=$(basename $reads_1 | cut -d'.' -f1)
+name2=$(basename $reads_2 | cut -d'.' -f1)
 
 echo $name1
 echo $name2
@@ -107,12 +107,13 @@ while (( j * batch < proc ))
   while (( n < q )) 
     do f=$dir/$out_dir/$name0.out.tmp.$n.txt
       while [ "$(tail -n 1 $f)" != "MAPPING COMPLETE" ]
-          do sleep 10; done
+          do sleep 15; done
       m=$(( (j * batch) + n ))
       mv $f $dir/$out_dir/$name0.out.$m.txt      
     n=$((n + 1))
     done
   j=$((j + 1))
+  sleep 15 # Wait a bit to make sure everything is done
 done
 
 # Make submit script to combine results from children and 
@@ -140,10 +141,10 @@ while [ "$(tail -n 1 $dir/$out_dir/$name0.comb.out.*)" != "COMPLETE" ]
 done
 
 # Remove temporary files
-mv $dir/$out_dir/mbias.tsv $dir/$out_dir/$name0.mbias.tsv
+mv $dir/$out_dir/$name0/mbias.tsv $dir/$out_dir/$name0.mbias.tsv
 rm -r $dir/$out_dir/*split*
-rm -r $dir/$out_dir/ev
-rm -r $dir/$out_dir/tsv
+#rm -r $dir/$out_dir/ev
+#rm -r $dir/$out_dir/tsv
 
 # TODO:
 # dir could be an input or the current directory and 

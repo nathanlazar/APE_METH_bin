@@ -39,7 +39,7 @@ mk_plot <- function(data) {
                  size=1.2, linetype=2) +
     geom_segment(aes(x=trim5, y=55, xend=trim5, yend=85),
                  size=1.2, linetype=2) +
-    ggtitle("Methylation bias of 100k reads for NLE-Vok") +
+    ggtitle("Methylation bias of 100k reads") +
     labs(x = "Position in read", y= "Methylation level",
          color="Sequencing\nbatch") + 
     annotation_custom(grobTree(textGrob("Dotted lines show trimming", 
