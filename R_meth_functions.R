@@ -4,7 +4,7 @@
 library(bsseq)
 library(parallel)
 
-dir <- '/mnt/lustre1/users/lazar/GIBBONS/APE_METH_bin/'
+dir <- '/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin/'
 #dir <- '~/gibbon_meth/'}
 
 source(paste0(dir, 'make_seqinfo.R'))

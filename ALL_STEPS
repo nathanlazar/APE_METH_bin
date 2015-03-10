@@ -75,6 +75,24 @@ mkdir MAPPED
 $my_bin_dir/align_all.sh
 
 #** HERE **#
+# Don't combine reads from each species until adjusting for methylation differences
+# across read length
+
+1.8) Map each set of reads
+$my_bin_dir/batch_align.sh \
+   NomLeu1_0/NomLeu1_0.fa \
+   TRIMMED/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz \
+   TRIMMED/DNA111101LC_62_HSA_normal_NoIndex_L006_2_val_2_trim.fq.gz \
+   MAPPED4 500000 50 & &> MAPPED4/DNA111101LC_62_HSA_normal_NoIndex_L006.out
+
+
+
+   human_hg19_noIUPAC/human_hg19_noIUPAC.fa \
+   TRIMMED/Human_1.fq.gz \
+   TRIMMED/Human_2.fq.gz \
+   HUMAN_MAPPED \
+   500000 \
+   50 &> Human_align.out
 
 
 # 1.6) Combine reads for each species
