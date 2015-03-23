@@ -38,10 +38,13 @@ make_lr_bp <- function(bp.gr, span) {
   if(length(cats) > 0) {
     tmp.names <- as.character(tmp$BP_name)
     tmp.notes <- as.character(tmp$notes)
+    tmp.notes <- as.character(tmp$notes)
     tmp.side <- as.character(tmp$side)
     for(rng in cats) {
       tmp.names[rng] <-  paste(as.character(
         bp.lr.gr$BP_name[unlist(tmp[rng]$mapping)]), collapse='-')
+      tmp.notes[rng] <-  paste(as.character(
+        bp.lr.gr$notes[unlist(tmp[rng]$mapping)]), collapse='-')
       tmp.notes[rng] <-  paste(as.character(
         bp.lr.gr$notes[unlist(tmp[rng]$mapping)]), collapse='-')
       tmp.side[rng] <-  paste(as.character(
@@ -49,8 +52,8 @@ make_lr_bp <- function(bp.gr, span) {
     }
     tmp$BP_name <- as.factor(tmp.names)
     tmp$notes <- as.factor(tmp.notes)
+    tmp$notes <- as.factor(tmp.notes)
     tmp$side <- as.factor(tmp.side)
   }
-  tmp$size <- width(tmp)
-  return(tmp)
+  tmp
 }

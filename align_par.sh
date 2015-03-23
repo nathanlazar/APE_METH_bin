@@ -18,7 +18,8 @@
 #     MAPPED
 
 #Increase the number of open files allowed
-ulimit -n 20000
+#ulimit -n 20000
+ulimit -a 20000
 
 dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH
 bsmooth_dir=/mnt/lustre1/users/lazar/GIBBONS/VOK_GENOME/bin/bsmooth-align-0.8.1/bin

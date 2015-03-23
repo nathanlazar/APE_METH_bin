@@ -85,7 +85,7 @@ $my_bin_dir/batch_align.sh \
    TRIMMED/DNA111101LC_62_HSA_normal_NoIndex_L006_2_val_2_trim.fq.gz \
    MAPPED4 500000 50 & &> MAPPED4/DNA111101LC_62_HSA_normal_NoIndex_L006.out
 
-
+############## HERE #############
 
    human_hg19_noIUPAC/human_hg19_noIUPAC.fa \
    TRIMMED/Human_1.fq.gz \

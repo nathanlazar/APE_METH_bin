@@ -6,14 +6,14 @@ make_lr_bp <- function(bp.gr, span) {
 ##############################################################
   bp.left.gr <- bp.gr[!grepl('Start', bp.gr$notes)]
   end(bp.left.gr) <- start(bp.left.gr)
-  start(bp.left.gr) <- start(bp.left.gr) - span
-  bp.left.gr$size <- end(bp.left.gr) - start(bp.left.gr)
+  start(bp.left.gr) <- end(bp.left.gr) - span
+  bp.left.gr$size <- width(bp.left.gr)
   bp.left.gr$side <- 'left'
 
   bp.right.gr <- bp.gr[!grepl('End', bp.gr$notes)]
   start(bp.right.gr) <- end(bp.right.gr)
-  end(bp.right.gr) <- end(bp.right.gr) + span
-  bp.right.gr$size <- end(bp.right.gr) - start(bp.right.gr)
+  end(bp.right.gr) <- start(bp.right.gr) + span
+  bp.right.gr$size <- width(bp.right.gr)
   bp.right.gr$side <- 'right'
 
   bp.lr.gr <- c(bp.left.gr, bp.right.gr)
