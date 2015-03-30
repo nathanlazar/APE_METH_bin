@@ -6,6 +6,7 @@
 
 # Usage:
 # Rscript ./bin/full_R_analysis.R
+#   <base directory>
 #   <bin directory>
 #   <output directory> 
 #   <file of chromosome lengths>
@@ -15,28 +16,30 @@
 #   <repmask file>
 #   <cpg_island_file>
 
-# Example: 
+# Example: #######**********Change These *******#########
 # Rscript ./bin/full_R_analysis.R 
-#   gibbon_meth/
-#   VOK_GENOME/all_BP_full_analysis/
-#   VOK_GENOME/NomLeu1.0_lengths.txt
-#   VOK_GENOME/ALIGN/ALL/cpg10gzip
-#   VOK_GENOME/NomLeu1.0_bp_clean.txt
-#   VOK_GENOME/NomLeu1.0.70.genes.gtf
-#   VOK_GENOME/NomLeu1.0_repmask.txt
-#   VOK_GENOME/NomLeu1.0_cpg_islands.gff
+#   /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/
+#   APE_METH/
+#   PERM_ANALYSIS/
+#   NomLeu1_0/seq_len.txt
+#   MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/
+#   BREAKPOINTS/Gibbon_Breakpointslist_1_27_15.txt
+#   GIBBON_FEATURES/NomLeu1.0.70.genes.gtf
+#   GIBBON_FEATURES/NomLeu1.0_repmask.txt
+#   GIBBON_FEATURES/gibbon_cpgislands.gff
 
 library(bsseq)
 
 args <- commandArgs(TRUE)
-bindir <- args[1]
-outdir <- args[2]
-len_file <- args[3]
-cpg_drive <- args[4]
-bp_file <- args[5]
-gene_file <- args[6]
-rep_file <- args[7]
-cpg_isl_file <- args[8]
+dir <- args[1]
+bindir <- args[2]
+outdir <- args[3]
+len_file <- args[4]
+cpg_drive <- args[5]
+bp_file <- args[6]
+gene_file <- args[7]
+rep_file <- args[8]
+cpg_isl_file <- args[9]
 
 #bac_file <- 'BAC_amp_on_NomLeu1.0.txt'
 
@@ -44,11 +47,11 @@ source(paste0(bindir, 'R_meth_functions.R'))
 
 # Read in lengths of chromsomes and make seqinfo object
 #######################################################
-seqinfo <- make_seqinfo(len_file, 'NomLeu1.0')
+seqinfo <- make_seqinfo(len_file, 'NomLeu1.0')        ####**** Change ****###
 
 # Read in CpG data and make BSeq object with coverage over 4
 ############################################################
-all.bs <- make_all_bs(cpg_drive, 'NLE_Vok', seqinfo, 4)
+all.bs <- make_all_bs(cpg_drive, 'NLE_Vok', seqinfo, 4)  ###**** Change ***###
 
 # Write bed files of CpG coverage and methylation
 #################################################
@@ -67,8 +70,10 @@ all.cpg.meth <- mean(mcgetMeth(all.bs, type='raw', what='perBase'),
 bp.gr <- read_bp(bp_file, seqinfo)
 
 # Make GRanges object of 10kb regions on each side of breaks
-# unless bp_file has 'BAC' in it or outdir name has 'inside' (hack)
-if(grepl('BAC', bp_file) | grepl('inside', outdir)) {
+# unless bp_file has 'BAC' in it or outdir name has 'inside' 
+# or the species isn't gibbon (hack)
+if(grepl('BAC', bp_file) | grepl('inside', outdir) |
+   seqinfo@genome[1] != 'NomLeu1.0') {
   bp.lr.gr <- bp.gr
 } else {
   bp.lr.gr <- make_lr_bp(bp.gr, 10000)
@@ -99,7 +104,7 @@ min.chr.size <- max(bp.lr.gr$size)+2000 # Choose only from chroms that
 bp.permute <- par_permute(outdir, bindir, bp.lr.gr, bp.lr.gr, all.bs, 
                           n=1000, type='all', 
                           min.chr.size=min.chr.size, end.exclude=1000)
-
+#####*********************#*#*#*#*#*HERE*#*#*#*#*******************####
 ###############
 # Gene analysis
 ###############
@@ -212,7 +217,7 @@ AluY.permute <-  par_permute(outdir, bindir, SINE.gr.list$AluY, bp.lr.gr,
 SINE.permute.list <- list(Alu=Alu.permute, MIR=MIR.permute,
                           AluJ=AluJ.permute, AluS=AluS.permute,
                           AluY=AluY.permute)
-
+###*******************#*****************#********************#******
 #####################
 # CpG island analysis
 #####################
@@ -250,6 +255,88 @@ cpg.permute.list <- list(cpg_island=cpg_island.permute,
 
 per.results <- combine_per(bp.permute, gene.permute.list, rep.permute, 
   rep.permute.list, SINE.permute.list, cpg.permute.list)
+save(per.results, file=paste0(outdir, 'per_results.Rdat'))
+
+#################################################
+# Plot methylation vs. coverage and cpg counts for 
+# the sides of the breakpoints
+#################################################
+
+# Plots of methylation, coverage and cpgs
+bp.lr.df <- data.frame(mcols(bp.lr.gr)[,-1])
+names(bp.lr.df)[6] <- 'methylation'
+
+png(file="meth_cov_plot.png", height=2*480, width=2*480)
+  plot_meth_cov(bp.lr.df)
+dev.off()
+png(file="meth_cpgs_plot.png", height=2*480, width=2*480)
+  plot_meth_cpgs(bp.lr.df)
+dev.off()
+
+#################################################
+# Compare mean absolute differences in methylation, 
+# coverage and cpg counts between the breakpoint 
+# regions and randomly selected regions (both 
+# adjacent and non-adjacent)
+#################################################
+
+# Run permutation analysis to see if the distribution of MAD values 
+# for the set of breakpoints differs from what would be expected 
+# by chance. This is done by obtaining 1,000 sets of adjacent regions
+# with the same sizes as the BP regions and measuring the MAD
+# Additionally, do the same with non-adjacent regions.
+
+adj.sides <- par_permute_sides(paste0(dir,outdir), bindir, bp.lr.gr, all.bs,
+                               n=1000, adjacent=T, end.exclude=1000)
+
+disj.sides <- par_permute_sides(paste0(dir,outdir), bindir, bp.lr.gr, all.bs,
+                                n=1000, adjacent=F, end.exclude=1000)
+
+# Use this to get a line on the plots showing the percentiles of MAD
+# scores for adj and non-adj. individual regions
+
+bp.lr.mad <- get_mad(bp.lr.gr)
+
+png(file="mad_meth.png", height=480, width=480*1.62)
+  plot_mad_meth(bp.lr.mad) +  
+  geom_hline(data=adj.sides$region.percentiles, aes(yintercept=mad.meth)) +
+  annotate("text", label=adj.sides$region.percentiles$pers, x=c(0,.1,0,.1,0,0,0), 
+           y=adj.sides$region.percentiles$mad.meth, size=6, colour = "black", vjust=-0.2) +
+  geom_hline(data=disj.sides$region.percentiles, aes(yintercept=mad.meth), colour="blue") +
+  annotate("text", label=disj.sides$region.percentiles$pers, x=c(.1,.2,.1,.2,.1,.1,.1), 
+           y=disj.sides$region.percentiles$mad.meth, size=6, colour = "blue", vjust=-0.2)
+dev.off()
+
+png(file="mad_cov.png", height=480, width=480*1.62)
+  plot_mad_cov(bp.lr.mad) +  
+  geom_hline(data=adj.sides$region.percentiles, aes(yintercept=mad.cov)) +
+  annotate("text", label=adj.sides$region.percentiles$pers, x=c(0,.1,0,.1,0,0,0) , 
+           y=adj.sides$region.percentiles$mad.cov, size=6, colour = "black", vjust=-0.2) +
+  geom_hline(data=disj.sides$region.percentiles, aes(yintercept=mad.cov), colour="blue") +
+  annotate("text", label=disj.sides$region.percentiles$pers, x=c(.1,.2,.1,.2,.1,.1,.1) , 
+           y=disj.sides$region.percentiles$mad.cov, size=6, colour = "blue", vjust=-0.2)
+dev.off()
+
+png(file="mad_cpgs.png", height=480, width=480*1.62)
+  plot_mad_cpgs(bp.lr.mad) +  
+  geom_hline(data=adj.sides$region.percentiles, aes(yintercept=mad.cpgs)) +
+  annotate("text", label=adj.sides$region.percentiles$pers, x=c(0,.1,0,.1,0,0,0) , 
+           y=adj.sides$region.percentiles$mad.cpgs, size=6, colour = "black", vjust=-0.2) +
+  geom_hline(data=disj.sides$region.percentiles, aes(yintercept=mad.cov), colour="blue") +
+  annotate("text", label=disj.sides$region.percentiles$pers, x=c(.1,.2,.1,.2,.1,.1,.1) , 
+           y=disj.sides$region.percentiles$mad.cpgs, size=6, colour = "blue", vjust=-0.2)
+dev.off()
+
+# Print out permutation group p-values
+print("P-values for comparisons to groups of adjacent regions:")
+print(paste('Methylation:', adj.sides$group.p_values$meth))
+print(paste('Coverage:', adj.sides$group.p_values$cov))
+print(paste('CpG counts:', adj.sides$group.p_values$cpgs))
+
+print("P-values for comparisons to groups of disjoint regions:")
+print(paste('Methylation:', disj.sides$group.p_values$meth))
+print(paste('Coverage:', disj.sides$group.p_values$cov))
+print(paste('CpG counts:', disj.sides$group.p_values$cpgs))
 
 # Write out data
 #********************************************************************

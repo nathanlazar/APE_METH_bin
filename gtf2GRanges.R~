@@ -13,8 +13,7 @@ gtf2GRanges <- function(myfile="my.gtf", seqinfo, prom_size=1000) {
   colnames(gtf) <- c("chr", "source", "type", "start", "end", "score", "strand", "frame",      
                      "attributes")
 
-  # Add chr to chrom names if necessary
-  if(sum(!grepl('chr', gtf$chr))>0) gtf$chr[!grepl('chr', gtf$chr)] <- paste0('chr', gtf$chr[!grepl('chr', gtf$chr)])
+  gtf$chr[!grepl('chr', gtf$chr)] <- paste0('chr', gtf$chr[grepl('chr', gtf$chr)])
 
   len <- nrow(gtf)
 
@@ -66,9 +65,8 @@ gtf2GRanges <- function(myfile="my.gtf", seqinfo, prom_size=1000) {
 	          transcript_name=transcript_name,
 	          exon_id=exon_id)
 
-  seqlevels(all.gr, force=T) <- seqlevels(seqinfo)
+  seqlevels(all.gr, force=T) <- seqlevels(seqinfo, force=T)
   seqlengths(all.gr) <- seqlengths(seqinfo)
-#  all.gr <- all.gr[seqnames(all.gr) %in% seqlevels(all.gr)]
 
   # Make gene GRanges object
   ##########################

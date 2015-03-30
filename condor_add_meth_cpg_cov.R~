@@ -21,7 +21,7 @@ condor_add_meth_cpg_cov <- function(feat.gr, all.bs, outdir) {
     'error=$(dir)/add.stderr.$(ID)',
     'log=$(dir)/add.log.$(ID)',
     'request_cpus=24',
-    'request_memory=4 GB',
+    'request_memory=2 GB',
     'request_disk=2 GB',
     'queue 1'),
     paste0(outdir, '/add.submit'))

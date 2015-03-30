@@ -6,7 +6,7 @@
 # looking at differences between the sides of breakpoints 
 # in parallel
 
-# Usage: make_per_submit(drive,
+# Usage: make_per_submit_sides(drive,
 #   executable,
 #   arguments, (as a list)
 #   output_dir,

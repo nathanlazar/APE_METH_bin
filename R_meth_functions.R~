@@ -3,8 +3,10 @@
 
 library(bsseq)
 library(parallel)
+library(dplyr)
+library(reshape2)
 
-dir <- '/mnt/lustre1/users/lazar/GIBBONS/APE_METH_bin/'
+dir <- '/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin/'
 #dir <- '~/gibbon_meth/'}
 
 source(paste0(dir, 'make_seqinfo.R'))
@@ -28,3 +30,5 @@ source(paste0(dir, 'par_rand.R'))
 source(paste0(dir, 'make_per_submit.R'))
 source(paste0(dir, 'condor_add_meth_cpg_cov.R'))
 source(paste0(dir, 'combine_per.R'))
+source(paste0(dir, 'par_rand_sides.R'))
+source(paste0(dir, 'par_permute_sides.R'))

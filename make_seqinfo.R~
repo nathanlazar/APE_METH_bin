@@ -7,11 +7,6 @@ make_seqinfo <- function(len_file, species='') {
   lengths <- read.table(len_file, sep="\t")
   #order
   lengths <- lengths[with(lengths, order(V1)), ]
-  if(sum(grepl('chr', as.character(lengths$V1)))==0) {
-    seqinf <- Seqinfo(paste0('chr', as.character(lengths[,1])),
-                      lengths[,2], NA, species)
-  } else {
-    seqinf <- Seqinfo(as.character(lengths[,1]), lengths[,2], NA, species)
-  }
-  return(seqinf)
+  Seqinfo(paste0('chr', as.character(lengths[,1])),
+    lengths[,2], NA, species)
 }

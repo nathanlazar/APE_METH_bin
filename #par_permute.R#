@@ -35,7 +35,7 @@ par_permute <- function(wdir, bindir, feat.gr, bp.lr.gr, all.bs, n=1000,
   breaks <- cumsum(as.numeric(lengths-(end.exclude*2))) /
               sum(as.numeric(lengths-(end.exclude*2)))
   names(breaks) <- names(lengths)
-  sizes <- width(bp.lr.gr)
+  sizes <- bp.lr.gr$size
 
   # Make directory to store output
   wdir <- paste0(wdir, type)
@@ -54,7 +54,7 @@ par_permute <- function(wdir, bindir, feat.gr, bp.lr.gr, all.bs, n=1000,
   jobs <- 63
   make_per_submit(wdir, paste0(bindir, '/wrap_par_rand.R'),
     c('$(dir)/par_permute.dat', type, '1000', '$$(Cpus)'),
-    wdir, cores, '10 GB', '2 GB', jobs, 
+    wdir, cores, ' GB', '2 GB', jobs, 
     paste0(wdir, '/condor.submit'))
 
   # Run condor script

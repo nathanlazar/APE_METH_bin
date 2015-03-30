@@ -4,6 +4,11 @@ make_lr_bp <- function(bp.gr, span) {
 ##############################################################
 # Make GRanges object of <span> regions on each side of breaks
 ##############################################################
+
+  bp.classIIb.gr <- bp.gr[bp.gr$class=="II-B"]
+  bp.classIIb.gr$side <- 'neither'
+  bp.gr <- bp.gr[!bp.gr$class=="II-B"]
+
   bp.left.gr <- bp.gr[!grepl('Start', bp.gr$notes)]
   end(bp.left.gr) <- start(bp.left.gr)
   start(bp.left.gr) <- start(bp.left.gr) - span
@@ -16,7 +21,7 @@ make_lr_bp <- function(bp.gr, span) {
   bp.right.gr$size <- end(bp.right.gr) - start(bp.right.gr)
   bp.right.gr$side <- 'right'
 
-  bp.lr.gr <- c(bp.left.gr, bp.right.gr)
+  bp.lr.gr <- c(bp.left.gr, bp.right.gr, bp.classIIb.gr)
   bp.lr.gr <- sort(bp.lr.gr)
 
   # Trim ranges to be within chromosomes

@@ -4,6 +4,13 @@ make_lr_bp <- function(bp.gr, span) {
 ##############################################################
 # Make GRanges object of <span> regions on each side of breaks
 ##############################################################
+
+  if(length(bp.gr$class)>0) {
+    bp.classIIb.gr <- bp.gr[bp.gr$class=="II-B"]
+    bp.classIIb.gr$side <- 'neither'
+    bp.gr <- bp.gr[!bp.gr$class=="II-B"]
+  }
+
   bp.left.gr <- bp.gr[!grepl('Start', bp.gr$notes)]
   end(bp.left.gr) <- start(bp.left.gr)
   start(bp.left.gr) <- start(bp.left.gr) - span
@@ -16,7 +23,7 @@ make_lr_bp <- function(bp.gr, span) {
   bp.right.gr$size <- end(bp.right.gr) - start(bp.right.gr)
   bp.right.gr$side <- 'right'
 
-  bp.lr.gr <- c(bp.left.gr, bp.right.gr)
+  bp.lr.gr <- c(bp.left.gr, bp.right.gr, bp.classIIb.gr)
   bp.lr.gr <- sort(bp.lr.gr)
 
   # Trim ranges to be within chromosomes
@@ -38,13 +45,10 @@ make_lr_bp <- function(bp.gr, span) {
   if(length(cats) > 0) {
     tmp.names <- as.character(tmp$BP_name)
     tmp.notes <- as.character(tmp$notes)
-    tmp.notes <- as.character(tmp$notes)
     tmp.side <- as.character(tmp$side)
     for(rng in cats) {
       tmp.names[rng] <-  paste(as.character(
         bp.lr.gr$BP_name[unlist(tmp[rng]$mapping)]), collapse='-')
-      tmp.notes[rng] <-  paste(as.character(
-        bp.lr.gr$notes[unlist(tmp[rng]$mapping)]), collapse='-')
       tmp.notes[rng] <-  paste(as.character(
         bp.lr.gr$notes[unlist(tmp[rng]$mapping)]), collapse='-')
       tmp.side[rng] <-  paste(as.character(
@@ -52,8 +56,8 @@ make_lr_bp <- function(bp.gr, span) {
     }
     tmp$BP_name <- as.factor(tmp.names)
     tmp$notes <- as.factor(tmp.notes)
-    tmp$notes <- as.factor(tmp.notes)
     tmp$side <- as.factor(tmp.side)
   }
-  tmp
+  tmp$size <- width(tmp)
+  return(tmp)
 }

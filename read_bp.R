@@ -8,11 +8,12 @@ read_bp <- function(bp_file, seqinfo) {
     blank.lines.skip=T, strip.white=T, fill=T)
   if(ncol(bps) > 7)
     bps <- bps[,1:7]
-  if(ncol(bps)==7)
+  if(ncol(bps)==7) {
     names(bps)=c('chr', 'start', 'end', 'BP_name', 'size', 'notes', 'class')
-  if(ncol(bps)==3)
+    bps$chr <- paste0('chr', bps$chr)
+  }
+  if(ncol(bps)==4)
     names(bps)=c('chr', 'start', 'end', 'BP_name')
-  bps$chr <- paste0('chr', bps$chr)
 
   bp.gr <- makeGRangesFromDataFrame(bps, keep.extra.columns=T)
   seqlevels(bp.gr) <- seqlevels(seqinfo)
