@@ -1,18 +1,25 @@
 # nathan dot lazar at gmail dot com
 
 par_rand_sides <- function(all.bs, bp.lr.mad, breaks, lengths, end.exclude, 
-                           adjacent, reps=1000) {
+                           adjacent, reps=1000, min_cov=4) {
 # Finds random regions in a given genome and gets the
 # mean absolute differnce in methylation coverage and cpg count 
 
 # If adjacent=T then the regions are next to each other, 
 # If adjacent=F we compare random pairs of regions
+  
+  # Subset all.bs by coverage >= min_cov
+  cov_min.bs <- all.bs[getCoverage(all.bs) >= min_cov]
 
-  print(adjacent)
-
-  bp.lr.mad.size <- bp.lr.mad %>%
-    select(s_name, size, side, class) %>%
-    dcast(s_name + class ~ side, value.var='size', fun.aggregate=sum) 
+  if('class' %in% names(bp.lr.mad)) {
+    bp.lr.mad.size <- bp.lr.mad %>%
+      select(s_name, size, side, class) %>%
+      dcast(s_name + class ~ side, value.var='size', fun.aggregate=sum) 
+  } else {
+    bp.lr.mad.size <- bp.lr.mad %>%
+      select(s_name, size, side) %>%
+      dcast(s_name ~ side, value.var='size', fun.aggregate=sum) 
+  }
 
   if(adjacent) {
     num <- nrow(bp.lr.mad.size)
@@ -57,8 +64,8 @@ par_rand_sides <- function(all.bs, bp.lr.mad, breaks, lengths, end.exclude,
   }
 
   # Get methylation and coverage for all random regions at once
-  meth.l <- mcgetMeth(all.bs, regions=rand.l.gr, type='raw', what='perBase')
-  meth.r <- mcgetMeth(all.bs, regions=rand.r.gr, type='raw', what='perBase')
+  meth.l <- mcgetMeth(cov_min.bs, regions=rand.l.gr, type='raw', what='perBase')
+  meth.r <- mcgetMeth(cov_min.bs, regions=rand.r.gr, type='raw', what='perBase')
 
   cov.l <- mcgetCoverage(all.bs, regions=rand.l.gr, what='perBase')
   cov.r <- mcgetCoverage(all.bs, regions=rand.r.gr, what='perBase')
@@ -68,8 +75,8 @@ par_rand_sides <- function(all.bs, bp.lr.mad, breaks, lengths, end.exclude,
                         sapply(meth.r, mean, na.rm=T))
   region.ad.cov <- abs(sapply(cov.l, mean, na.rm=T) -
                         sapply(cov.r, mean, na.rm=T))
-  region.ad.cpgs <- abs(sapply(meth.l, length) -
-                        sapply(meth.r, length))
+  region.ad.cpgs <- abs(sapply(cov.l, length) -
+                        sapply(cov.r, length))
     
   # Get group level MAD distributions
   # Take the mean methylation of each region, subtract two sides,

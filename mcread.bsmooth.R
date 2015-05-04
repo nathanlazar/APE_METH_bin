@@ -68,7 +68,9 @@ mcread.bsmoothDirRaw <- function(dir, seqnames = NULL, keepCycle = FALSE, keepFi
         do.call(c, lapply(outList, function(xx) xx[[name]]))
     })
     rm(outList)
-    gr <- GRanges(seqnames = paste0("chr", out[["ref"]]),
+    seqn <- out[["ref"]]
+    seqn[!grepl('chr', seqn)] <- paste0("chr", seqn)
+    gr <- GRanges(seqnames = seqn,
                   ranges = IRanges(start = out[["off"]], width = 1))
     out[["ref"]] <- out[["off"]] <- NULL
     names(out)[names(out) == "strand"] <- "bstrand"

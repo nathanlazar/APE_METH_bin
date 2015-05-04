@@ -19,7 +19,7 @@
 # Example: #######**********Change These *******#########
 # Rscript ./bin/full_R_analysis.R 
 #   /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/
-#   APE_METH/
+#   APE_METH_bin/
 #   PERM_ANALYSIS/
 #   NomLeu1_0/seq_len.txt
 #   MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/
@@ -29,6 +29,7 @@
 #   GIBBON_FEATURES/gibbon_cpgislands.gff
 
 library(bsseq)
+condor <- TRUE  # Set variable to use cluster
 
 args <- commandArgs(TRUE)
 dir <- args[1]
@@ -44,14 +45,16 @@ cpg_isl_file <- args[9]
 #bac_file <- 'BAC_amp_on_NomLeu1.0.txt'
 
 source(paste0(bindir, 'R_meth_functions.R'))
+source(paste0(bindir, 'plot_sides.R'))
 
 # Read in lengths of chromsomes and make seqinfo object
 #######################################################
-seqinfo <- make_seqinfo(len_file, 'NomLeu1.0')        ####**** Change ****###
+seqinfo <- make_seqinfo(len_file, strsplit(len_file, "/")[[1]][1])
 
-# Read in CpG data and make BSeq object with coverage over 4
+# Read in CpG data and make BSeq object with all CpGs
 ############################################################
-all.bs <- make_all_bs(cpg_drive, 'NLE_Vok', seqinfo, 4)  ###**** Change ***###
+all.bs <- make_all_bs(cpg_drive, strsplit(len_file, "/")[[1]][1], seqinfo, 0)
+cov4.bs <- all.bs[getCoverage(all.bs) >=4]
 
 # Write bed files of CpG coverage and methylation
 #################################################
@@ -59,8 +62,7 @@ make_tracks(all.bs, outdir, 'meth.bedgraph', 'cov.bedgraph')
 
 #Measure methylation of CpGs with coverage of 4 or more
 ########################################################
-all.cpg.meth <- mean(mcgetMeth(all.bs, type='raw', what='perBase'),
-                     na.rm=T)
+all.cpg.meth <- mean(mcgetMeth(cov4.bs, type='raw', what='perBase'), na.rm=T)
 
 ############################
 # Breakpoint region analysis
@@ -73,7 +75,7 @@ bp.gr <- read_bp(bp_file, seqinfo)
 # unless bp_file has 'BAC' in it or outdir name has 'inside' 
 # or the species isn't gibbon (hack)
 if(grepl('BAC', bp_file) | grepl('inside', outdir) |
-   seqinfo@genome[1] != 'NomLeu1.0') {
+   seqinfo@genome[1] != 'NomLeu1_0') {
   bp.lr.gr <- bp.gr
 } else {
   bp.lr.gr <- make_lr_bp(bp.gr, 10000)
@@ -86,7 +88,12 @@ write.table(bp.bed, file=paste0(outdir,'bp_regions.bed'), quote=F,
 
 # Add mean methylation, number of CpGs and coverage
 # of sides of bp regions to GRanges object
-bp.lr.gr <- add_meth_cpg_cov(bp.lr.gr, all.bs)
+if(condor) {
+  bp.lr.gr <- condor_add_meth_cpg_cov(bp.lr.gr, all.bs,
+                dir, paste0(outdir, 'bp_add/'), bindir)
+} else {
+  bp.lr.gr <- add_meth_cpg_cov(bp.lr.gr, all.bs, parallel=F, min_cov=4)
+}
 
 # Write out coverage of targeted regions
 write.table(data.frame(chr=as.vector(seqnames(bp.lr.gr)), 
@@ -96,15 +103,16 @@ write.table(data.frame(chr=as.vector(seqnames(bp.lr.gr)),
             col.names=T)
 
 # Run permutation analysis to determine whether the breakpoint
-# regions have lower methylation or coverage than would be seen
-# in random regions
+# regions have lower methylation, coverage or CpG counts than are 
+# seen in random regions
+bp.lr.gr$size <- width(bp.lr.gr)
 min.chr.size <- max(bp.lr.gr$size)+2000 # Choose only from chroms that
                                         # are big enough to 
                                         # contain regions
 bp.permute <- par_permute(outdir, bindir, bp.lr.gr, bp.lr.gr, all.bs, 
                           n=1000, type='all', 
                           min.chr.size=min.chr.size, end.exclude=1000)
-#####*********************#*#*#*#*#*HERE*#*#*#*#*******************####
+
 ###############
 # Gene analysis
 ###############
@@ -143,7 +151,7 @@ rep.gr <- make_rep_gr(rep_file, seqinfo(all.bs))
 # rep.gr <- add_meth_cpg_cov(rep.gr, all.bs)
 
 rep.gr <- condor_add_meth_cpg_cov(rep.gr, all.bs, 
-            paste0(outdir, 'rep_add'))
+            bin, paste0(outdir, 'rep_add'), bindir)
 
 rep.permute <- par_permute(outdir, bindir, rep.gr, bp.lr.gr, 
                            all.bs, n=1000,
@@ -217,7 +225,7 @@ AluY.permute <-  par_permute(outdir, bindir, SINE.gr.list$AluY, bp.lr.gr,
 SINE.permute.list <- list(Alu=Alu.permute, MIR=MIR.permute,
                           AluJ=AluJ.permute, AluS=AluS.permute,
                           AluY=AluY.permute)
-###*******************#*****************#********************#******
+
 #####################
 # CpG island analysis
 #####################
@@ -231,9 +239,9 @@ cpg_shore.gr <- make_cpg_shore(cpg_island.gr, 1000)
 # coverage to CpGisland GRanges object
 
 cpg_island.gr <- condor_add_meth_cpg_cov(cpg_island.gr, all.bs,
-            paste0(outdir, 'cpg_island_add'))
+            bin, paste0(outdir, 'cpg_island_add'), bindir)
 cpg_shore.gr <- condor_add_meth_cpg_cov(cpg_shore.gr, all.bs,
-            paste0(outdir, 'cpg_shore_add'))
+            bin, paste0(outdir, 'cpg_shore_add'), bindir)
 
 #cpg_island.gr <- add_meth_cpg_cov(cpg_island.gr, all.bs)
 #cpg_shore.gr <- add_meth_cpg_cov(cpg_shore.gr, all.bs)
@@ -263,13 +271,18 @@ save(per.results, file=paste0(outdir, 'per_results.Rdat'))
 #################################################
 
 # Plots of methylation, coverage and cpgs
-bp.lr.df <- data.frame(mcols(bp.lr.gr)[,-1])
-names(bp.lr.df)[6] <- 'methylation'
+if(ncol(mcols(bp.lr.gr)) >= 6) {
+  bp.lr.df <- data.frame(mcols(bp.lr.gr)[,-1])
+  names(bp.lr.df)[7] <- 'methylation'
+} else  {
+  bp.lr.df <- data.frame(mcols(bp.lr.gr))
+  names(bp.lr.df)[2] <- 'methylation'    ## This probably needs to be changed ##
+}
 
-png(file="meth_cov_plot.png", height=2*480, width=2*480)
+png(file=paste0(outdir, "meth_cov_plot.png"), height=480, width=480)
   plot_meth_cov(bp.lr.df)
 dev.off()
-png(file="meth_cpgs_plot.png", height=2*480, width=2*480)
+png(file=paste0(outdir, "meth_cpgs_plot.png"), height=480, width=480)
   plot_meth_cpgs(bp.lr.df)
 dev.off()
 
@@ -286,7 +299,7 @@ dev.off()
 # with the same sizes as the BP regions and measuring the MAD
 # Additionally, do the same with non-adjacent regions.
 
-adj.sides <- par_permute_sides(paste0(dir,outdir), bindir, bp.lr.gr, all.bs,
+adj.sides <- par_permute_sides(paste0(dir,outdir), paste0(dir, bindir), bp.lr.gr, all.bs,
                                n=1000, adjacent=T, end.exclude=1000)
 
 disj.sides <- par_permute_sides(paste0(dir,outdir), bindir, bp.lr.gr, all.bs,
@@ -297,7 +310,9 @@ disj.sides <- par_permute_sides(paste0(dir,outdir), bindir, bp.lr.gr, all.bs,
 
 bp.lr.mad <- get_mad(bp.lr.gr)
 
-png(file="mad_meth.png", height=480, width=480*1.62)
+source(paste0(bindir, 'plot_sides.R'))
+
+png(file=paste0(outdir, "mad_meth.png"), height=480, width=480*1.62)
   plot_mad_meth(bp.lr.mad) +  
   geom_hline(data=adj.sides$region.percentiles[4:7,], aes(yintercept=mad.meth), linetype=2) +
   annotate("text", label=adj.sides$region.percentiles$pers[4:7], x=0, 
@@ -307,7 +322,7 @@ png(file="mad_meth.png", height=480, width=480*1.62)
            y=disj.sides$region.percentiles$mad.meth[4:7], size=6, colour = "blue", vjust=-0.2)
 dev.off()
 
-png(file="mad_cov.png", height=480, width=480*1.62)
+png(file=paste0(outdir, "mad_cov.png"), height=480, width=480*1.62)
   plot_mad_cov(bp.lr.mad) +  
   geom_hline(data=adj.sides$region.percentiles[4:7,], aes(yintercept=mad.cov), linetype=2) +
   annotate("text", label=adj.sides$region.percentiles$pers[4:7], x=18 , 
@@ -317,7 +332,7 @@ png(file="mad_cov.png", height=480, width=480*1.62)
            y=disj.sides$region.percentiles$mad.cov[4:7], size=6, colour = "blue", vjust=-0.2)
 dev.off()
 
-png(file="mad_cpgs.png", height=480, width=480*1.62)
+png(file=paste0(outdir, "mad_cpgs.png"), height=480, width=480*1.62)
   plot_mad_cpgs(bp.lr.mad) +  
   geom_hline(data=adj.sides$region.percentiles[4:7,], aes(yintercept=mad.cpgs), linetype=2) +
   annotate("text", label=adj.sides$region.percentiles$pers[4:7], x=-30 , 

@@ -10,14 +10,16 @@ gff2GRanges <- function(myfile="my.gff", seqinfo) {
   gff <- read.delim(myfile, header=FALSE)
   colnames(gff) <- c("chr", "source", "type", "start", "end", "score", "strand", "frame",      
                      "attributes")
-  gff$chr <- paste0('chr', gff$chr)
+
+  # Add in 'chr' if necessary
+  if(sum(!grepl('chr', gff$chr))>0) gff$chr[!grepl('chr', gff$chr)] <- 
+    paste0('chr', gff$chr[!grepl('chr', gff$chr)])
 
   len <- nrow(gff)
 
   Size <- rep('', len)                                      #get size from attributes column
   idx <- grepl('Size', gff$attributes)
-  Size[idx] <- 
-    gsub(".*Size=(.*?);.*", "\\1", gff$attributes[idx])
+  Size[idx] <- gsub(".*Size=(.*?);.*", "\\1", gff$attributes[idx])
 
   PercentCG <- rep('', len)                                 #get Percent CG
   idx <- grepl('PercentCG', gff$attributes)
@@ -38,6 +40,7 @@ gff2GRanges <- function(myfile="my.gff", seqinfo) {
                   PercentCG=as.numeric(PercentCG),
                   ObsExp=as.numeric(ObsExp))
 
+  all.gr <- all.gr[seqnames(all.gr) %in% seqlevels(seqinfo)]
   seqlevels(all.gr) <- seqlevels(seqinfo)
   seqlengths(all.gr) <- seqlengths(seqinfo)
 

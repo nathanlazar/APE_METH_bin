@@ -25,9 +25,21 @@ par_permute_sides <- function(wdir, bindir, bp.lr.gr, all.bs, n=1000,
 
   bp.lr.mad <- get_mad(bp.lr.gr)
 
+  if('class' %in% names(bp.lr.mad)) {
+    bp.lr.mad.size <- bp.lr.mad %>%
+      select(s_name, size, side, class) %>%
+      dcast(s_name + class ~ side, value.var='size', fun.aggregate=sum)
+  } else {
+    bp.lr.mad.size <- bp.lr.mad %>%
+      select(s_name, size, side) %>%
+      dcast(s_name ~ side, value.var='size', fun.aggregate=sum)
+  }
+
   if(adjacent) {
+    num <- nrow(bp.lr.mad.size)
     sizes <- bp.lr.mad.size$left + bp.lr.mad.size$right
   } else {
+    num <- nrow(bp.lr.mad)
     sizes <- bp.lr.mad$size
   }
 
@@ -40,7 +52,6 @@ par_permute_sides <- function(wdir, bindir, bp.lr.gr, all.bs, n=1000,
   breaks <- cumsum(as.numeric(lengths-(end.exclude*2))) /
               sum(as.numeric(lengths-(end.exclude*2)))
   names(breaks) <- names(lengths)
-
 
   # Make directory to store output
   if(adjacent) {type <- 'adj'} else {type='disj'} 

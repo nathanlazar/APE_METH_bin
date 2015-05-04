@@ -53,7 +53,7 @@ $bsmooth_dir/bsev_tabulate.pl \
 -- $dir/$out_dir/$name0.tsv/ \
 -- $dir/$genome
 
-mkdir $dir/out_dir/$name0
+mkdir $dir/$out_dir/$name0
 
 #Create M-bias files
 $bsmooth_dir/bsev_mbias.pl \

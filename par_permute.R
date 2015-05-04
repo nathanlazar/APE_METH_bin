@@ -28,6 +28,8 @@ par_permute <- function(wdir, bindir, feat.gr, bp.lr.gr, all.bs, n=1000,
 # Prints out p-values and returns dataframe of mean methylation,
 # mean coverage and area covered (if type is a feature)
 
+  library(GenomicRanges)
+
   # Make a list for sampling according to chrom lengths
   # only sample from chroms at least <min.chr.size>
   lengths <- seqlengths(bp.lr.gr)[seqlengths(bp.lr.gr) >=
@@ -93,7 +95,7 @@ par_permute <- function(wdir, bindir, feat.gr, bp.lr.gr, all.bs, n=1000,
     # See how many of these permutations have methylation as low as
     # the breakpoint regions
     results$bp.count <- length(bp.lr.gr)
-    results$bp.w.av.meth <- weighted.mean(bp.lr.gr$meth, bp.lr.gr$cpgs)
+    results$bp.w.av.meth <- weighted.mean(bp.lr.gr$meth, bp.lr.gr$cpgs_w_cov)
     results$bp.w.av.cov <- weighted.mean(bp.lr.gr$cov, bp.lr.gr$cpgs)
     results$bp.cpgs.per.kb <- sum(bp.lr.gr$cpgs)/tot.size*1000
 
@@ -109,15 +111,15 @@ par_permute <- function(wdir, bindir, feat.gr, bp.lr.gr, all.bs, n=1000,
 
   } else {
 
-    feat.in.bp <- subsetByOverlaps(feat.gr, bp.lr.gr)
+    feat.in.bp <- GenomicRanges::subsetByOverlaps(feat.gr, bp.lr.gr)
 
     results$bp.count <- length(feat.in.bp)
-    results$bp.w.av.meth <- weighted.mean(feat.in.bp$meth, feat.in.bp$cpgs,
+    results$bp.w.av.meth <- weighted.mean(feat.in.bp$meth, feat.in.bp$cpgs_w_cov,
                                           na.rm=T)
     results$bp.w.av.cov <- weighted.mean(feat.in.bp$cov, feat.in.bp$cpgs)
     results$bp.cpgs <- sum(feat.in.bp$cpgs)
     results$bp.cpgs.per.kb <- results$bp.cpgs/sum(width(feat.in.bp))*1000
-    overlap <- intersect(bp.lr.gr, feat.in.bp, ignore.strand=T)
+    overlap <- GenomicRanges::intersect(bp.lr.gr, feat.in.bp, ignore.strand=T)
     results$bp.per.cov <- sum(width(overlap))/tot.size
 
     ######Report p-values############

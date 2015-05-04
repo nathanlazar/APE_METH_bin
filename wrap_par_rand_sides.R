@@ -29,9 +29,9 @@ source('/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin/R_meth_functio
 #   par_sides.Rdata
 
 args <- commandArgs(TRUE)
-#Load  all.bs, bp.lr.mad, breaks, lengths
-load(args[1])
+print(args)
 
+load(args[1])             #Load all.bs, bp.lr.mad, breaks, lengths
 end.exclude <- as.numeric(args[2])
 adjacent <- as.logical(as.numeric(args[3]))
 reps <- as.numeric(args[4])

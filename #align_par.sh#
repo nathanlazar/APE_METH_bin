@@ -1,4 +1,4 @@
-#!/bin/bash
+0;136;0c#!/bin/bash
 
 # Runs scripts necessary to align a small number of reads in parallel
 # using Bsmooth (bowite2)

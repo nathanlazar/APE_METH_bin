@@ -1,6 +1,6 @@
 # nathan dot lazar at gmail dot com
 
-par_rand <- function(all.bs, feat.gr, breaks, sizes, lengths, end.exclude, type, reps) {
+par_rand <- function(all.bs, feat.gr, breaks, sizes, lengths, end.exclude, type, reps, min_cov=4) {
 # Finds random regions in a given genome,
 # overlaps with features (if given) and gets the
 # mean methylation in features, mean coverage of 
@@ -12,6 +12,9 @@ par_rand <- function(all.bs, feat.gr, breaks, sizes, lengths, end.exclude, type,
   tot.size <- sum(sizes)
   nn <- reps*num
 
+  # Subset all.bs by coverage >= min_cov
+  cov_min.bs <- all.bs[getCoverage(all.bs) >= min_cov]
+
   rand_regions <- data.frame(chr=rep('', nn),
                              start=rep(0, nn),
                              end=rep(0, nn),
@@ -21,7 +24,7 @@ par_rand <- function(all.bs, feat.gr, breaks, sizes, lengths, end.exclude, type,
     # Choose a set of regions randomly with probability
     # proportional to chromosome lengths
     regions <- mclapply(sizes, get_region, breaks, lengths,
-                      end.exclude)
+                        end.exclude)
     for(j in 1:num) {
       rand_regions[(i-1)*num + j,] <- regions[[j]]
     }
@@ -39,7 +42,7 @@ par_rand <- function(all.bs, feat.gr, breaks, sizes, lengths, end.exclude, type,
   if(type=='all') {
     # Get methylation and coverage for all random regions at once
     # to minimize overhead
-    meth <- mcgetMeth(all.bs, regions=rand.gr, type='raw', what='perBase')
+    meth <- mcgetMeth(cov_min.bs, regions=rand.gr, type='raw', what='perBase')
     cov <- mcgetCoverage(all.bs, regions=rand.gr, what='perBase')
 
     # Get means in groups by the number of regions in each group
@@ -55,14 +58,14 @@ par_rand <- function(all.bs, feat.gr, breaks, sizes, lengths, end.exclude, type,
     feat.in.rand <- foreach(i=1:reps) %dopar%
       subsetByOverlaps(feat.gr, rand.gr[((i-1)*num+1):(i*num)])
     rand$mean.meth <- foreach(i=1:reps) %dopar%
-      weighted.mean(feat.in.rand[[i]]$meth, feat.in.rand[[i]]$cpgs, na.rm=T)
+      weighted.mean(feat.in.rand[[i]]$meth, feat.in.rand[[i]]$cpgs_w_cov, na.rm=T)
     rand$mean.cov <- foreach(i=1:reps) %dopar%
       weighted.mean(feat.in.rand[[i]]$cov, feat.in.rand[[i]]$cpgs, na.rm=T)
     rand$cpgs.per.kb <- foreach(i=1:reps) %dopar% {
       sum(feat.in.rand[[i]]$cpgs)/sum(width(feat.in.rand[[i]]))*1000}
     rand$per.cov <- foreach(i=1:reps) %dopar% {
-      sum(width(intersect(rand.gr[((i-1)*num+1):(i*num)], feat.in.rand[[i]],
-                          ignore.strand=T)))/tot.size}
+      sum(width(GenomicRanges::intersect(rand.gr[((i-1)*num+1):(i*num)], 
+                          feat.in.rand[[i]], ignore.strand=T)))/tot.size}
   }
   rand
 }

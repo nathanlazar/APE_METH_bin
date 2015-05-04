@@ -9,7 +9,7 @@ library(GenomicRanges)
 # from information in gtf file
 
 gtf2GRanges <- function(myfile="my.gtf", seqinfo, prom_size=1000) {
-  gtf <- read.delim(myfile, header=FALSE)
+  gtf <- read.delim(myfile, header=FALSE, stringsAsFactors=F)
   colnames(gtf) <- c("chr", "source", "type", "start", "end", "score", "strand", "frame",      
                      "attributes")
 
@@ -66,16 +66,17 @@ gtf2GRanges <- function(myfile="my.gtf", seqinfo, prom_size=1000) {
 	          transcript_name=transcript_name,
 	          exon_id=exon_id)
 
+  # Remove genes that aren't on chromosomes in provided seqinfo
+  all.gr <- all.gr[seqnames(all.gr) %in% seqlevels(seqinfo)]
   seqlevels(all.gr, force=T) <- seqlevels(seqinfo)
   seqlengths(all.gr) <- seqlengths(seqinfo)
-#  all.gr <- all.gr[seqnames(all.gr) %in% seqlevels(all.gr)]
 
   # Make gene GRanges object
   ##########################
   idx <- !grepl('pseudo', all.gr$source)
   gene.gr.list <- split(all.gr[idx], all.gr$gene_id[idx])
   gene.gr <- unlist(range(gene.gr.list))
-  gene.gr$gene_id <- names(gene.gr.list)
+  gene.gr$gene_id <- names(gene.gr)
 
   gene.tree <- GIntervalTree(gene.gr)     #used to subsetByOverlaps efficiently
 
@@ -85,7 +86,7 @@ gtf2GRanges <- function(myfile="my.gtf", seqinfo, prom_size=1000) {
 
   # Make intron GRanges object
   ############################
-  intron.gr <- setdiff(gene.gr, exon.gr)
+  intron.gr <- GenomicRanges::setdiff(gene.gr, exon.gr)
   intron.gr <- intron.gr[start(intron.gr) < end(intron.gr)]
 
   # Make promoter GRanges object

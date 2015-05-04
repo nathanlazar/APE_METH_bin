@@ -18,6 +18,6 @@ make_cpg_shore <- function(cpg_island.gr, shore_size) {
 
   out_isl.gr <- gaps(cpg_island.gr)
   
-  cpg_shore.gr <- intersect(out_isl.gr, rough.gr)
+  cpg_shore.gr <- GenomicRanges::intersect(out_isl.gr, rough.gr)
   cpg_shore.gr
 }

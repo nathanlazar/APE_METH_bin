@@ -21,6 +21,7 @@
 dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH
 bin_dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin
 bsmooth_dir=/mnt/lustre1/users/lazar/bin/bsmooth-align-0.8.1/bin
+bowtie_dir=/mnt/lustre1/users/lazar/bin/bowtie2-2.2.3
 cores=24
 genome=$1
 reads_1=$2
@@ -48,12 +49,18 @@ echo $name1
 echo $name2
 
 #Make out drive if it doesn't exist
-if [ ! -d $dir/$out_dir ]
+if [ ! -d $dir/$genome/ ]
   then mkdir $dir/$out_dir
 fi
 
-#Build Bowtie2 index:
-# should already be done
+# Build Bowtie2 index:
+# after checking whether it exists
+#gen_name=`echo $genome | sed 's/.fa//'`
+#if [ ! -d $dir/$gen_name.watson.1.bt2 ]
+#  then $bsmooth_dir/bswc_bowtie2_index.pl \
+#         --bowtie2-build=$bowtie_dir/bowtie2-build \
+#         --name=$dir/$gen_name $dir/$gen_name.fa
+#fi
 
 # Split up reads 
 zcat $dir/$reads_1 | split -d -a5 -l $chunk - $dir/$out_dir/$name1.split_
@@ -93,7 +100,7 @@ while (( j * batch < proc ))
     error='$dir/$out_dir/$name0.'stderr.$(ID)
     log='$dir/$out_dir/$name0.'log.$(ID)
     request_cpus = 16
-    request_memory = 12 GB
+    request_memory = 15 GB
     request_disk = 1 MB
     queue '$q > $dir/$out_dir/$name0.align_par.submit.$j
 
@@ -128,7 +135,7 @@ echo 'ID=$(Cluster).$(Process)
   log='$dir/$out_dir/$name0.'comb.log.$(ID)
   request_cpus = 24
   request_memory = 64 GB
-  request_disk = 2 GB
+  request_disk = 4 GB
   queue 1' > $dir/$out_dir/$name0.comb.submit
 
 # Submit the script
@@ -142,9 +149,10 @@ done
 
 # Remove temporary files
 mv $dir/$out_dir/$name0/mbias.tsv $dir/$out_dir/$name0.mbias.tsv
-rm -r $dir/$out_dir/*split*
+#rm -r $dir/$out_dir/*split*
 #rm -r $dir/$out_dir/ev
 #rm -r $dir/$out_dir/tsv
+#rm $dir/$out_dir/*align_par.submit*
 
 # TODO:
 # dir could be an input or the current directory and 

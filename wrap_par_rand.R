@@ -10,7 +10,7 @@
 library(foreach)
 library(doMC)
 library(bsseq)
-source('/mnt/lustre1/users/lazar/GIBBONS/gibbon_meth/R_meth_functions.R')
+source('/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin/R_meth_functions.R')
 
 # Usage:
 # Rscript ./wrap_par_rand.R
