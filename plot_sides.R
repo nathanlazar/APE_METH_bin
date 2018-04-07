@@ -52,16 +52,16 @@ plot_mad_meth <- function(bp.lr.mad) {
     bp.lr.mad2 <- bp.lr.mad %>%
       select(s_name, mad_meth, side, methylation, class) %>%
       dcast(s_name + mad_meth + class ~ side, value.var='methylation', fun.aggregate=max) %>%
-      filter(left != -Inf & right != -Inf)
+      filter(L != -Inf & R != -Inf)
     # Get data frame used to connect dots form the same bp with lines
-    p <- p + geom_segment(data=bp.lr.mad2, aes(x=left, y=mad_meth, yend=mad_meth, xend=right, color=class))
+    p <- p + geom_segment(data=bp.lr.mad2, aes(x=L, y=mad_meth, yend=mad_meth, xend=R, color=class))
   } else {
     p <- ggplot(data=bp.lr.mad, aes(x=methylation, y=mad_meth)) + geom_point(size=5)
     bp.lr.mad2 <- bp.lr.mad %>%
       select(s_name, mad_meth, side, methylation) %>%
       dcast(s_name + mad_meth ~ side, value.var='methylation', fun.aggregate=max) %>%
-      filter(left != -Inf & right != -Inf)
-    p <- p + geom_segment(data=bp.lr.mad2, aes(x=left, y=mad_meth, yend=mad_meth, xend=right))
+      filter(L != -Inf & R != -Inf)
+    p <- p + geom_segment(data=bp.lr.mad2, aes(x=L, y=mad_meth, yend=mad_meth, xend=R))
   }
   return(p)
 }
@@ -74,8 +74,8 @@ plot_mad_cov <- function(bp.lr.mad) {
     bp.lr.mad2 <- bp.lr.mad %>%
       select(s_name, mad_cov, side, cov, class) %>%
       dcast(s_name + mad_cov + class ~ side, value.var='cov', fun.aggregate=max) %>%
-      filter(left != -Inf & right != -Inf)
-    p <- p + geom_segment(data=bp.lr.mad2, aes(x=left, y=mad_cov, yend=mad_cov, xend=right, color=class))
+      filter(L != -Inf & R != -Inf)
+    p <- p + geom_segment(data=bp.lr.mad2, aes(x=L, y=mad_cov, yend=mad_cov, xend=R, color=class))
     return(p)
   } else {
     p <- ggplot(data=bp.lr.mad, aes(x=cov, y=mad_cov)) + geom_point(size=5) 
@@ -83,8 +83,8 @@ plot_mad_cov <- function(bp.lr.mad) {
     bp.lr.mad2 <- bp.lr.mad %>%
       select(s_name, mad_cov, side, cov) %>%
       dcast(s_name + mad_cov ~ side, value.var='cov', fun.aggregate=max) %>%
-      filter(left != -Inf & right != -Inf)
-    p <- p + geom_segment(data=bp.lr.mad2, aes(x=left, y=mad_cov, yend=mad_cov, xend=right))
+      filter(L != -Inf & R != -Inf)
+    p <- p + geom_segment(data=bp.lr.mad2, aes(x=L, y=mad_cov, yend=mad_cov, xend=R))
     return(p)
   }
 }
@@ -97,8 +97,8 @@ plot_mad_cpgs <- function(bp.lr.mad) {
     bp.lr.mad2 <- bp.lr.mad %>%
       select(s_name, mad_cpgs, side, cpgs, class) %>%
       dcast(s_name + mad_cpgs + class ~ side, value.var='cpgs', fun.aggregate=max) %>%
-      filter(left != -Inf & right != -Inf)
-    p <- p + geom_segment(data=bp.lr.mad2, aes(x=left, y=mad_cpgs, yend=mad_cpgs, xend=right, color=class))
+      filter(L != -Inf & R != -Inf)
+    p <- p + geom_segment(data=bp.lr.mad2, aes(x=L, y=mad_cpgs, yend=mad_cpgs, xend=R, color=class))
     return(p)
   } else {
     p <- ggplot(data=bp.lr.mad, aes(x=cpgs, y=mad_cpgs)) + geom_point(size=5)  
@@ -106,8 +106,8 @@ plot_mad_cpgs <- function(bp.lr.mad) {
     bp.lr.mad2 <- bp.lr.mad %>%
       select(s_name, mad_cpgs, side, cpgs) %>%
       dcast(s_name + mad_cpgs ~ side, value.var='cpgs', fun.aggregate=max) %>%
-      filter(left != -Inf & right != -Inf)  
-    p <- p + geom_segment(data=bp.lr.mad2, aes(x=left, y=mad_cpgs, yend=mad_cpgs, xend=right))
+      filter(L != -Inf & R != -Inf)  
+    p <- p + geom_segment(data=bp.lr.mad2, aes(x=L, y=mad_cpgs, yend=mad_cpgs, xend=R))
     return(p)
   }
 }

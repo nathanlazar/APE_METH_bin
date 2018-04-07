@@ -13,7 +13,7 @@ library(bsseq)
 source('/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin/R_meth_functions.R')
 
 # Usage:
-# Rscript ./wrap_par_rand.R
+# Rscript ./wrap_par_rand_sides.R
 #   <file_of_R_data.dat>
 #   <size of ends of chroms to be excluded>
 #   <adjacent=1 or 0>
@@ -21,7 +21,7 @@ source('/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin/R_meth_functio
 #   <out file>
 
 # Example:
-# Rscript ./wrap_par_rand.R
+# Rscript ./wrap_par_rand_sides.R
 #   par_permute_sides.dat
 #   1000
 #   1
@@ -29,7 +29,7 @@ source('/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin/R_meth_functio
 #   par_sides.Rdata
 
 args <- commandArgs(TRUE)
-print(args)
+#print(args)
 
 load(args[1])             #Load all.bs, bp.lr.mad, breaks, lengths
 end.exclude <- as.numeric(args[2])

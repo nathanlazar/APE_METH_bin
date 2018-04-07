@@ -18,7 +18,7 @@ library(foreach)
 library(doMC)
 library(bsseq)
 
-args <- commandArgs(TRUE)
+args <- commandArgs(trailingOnly = TRUE)
 #Load  feat.gr, all.bs
 if(length(args) > 0) {
   load(args[1])

@@ -5,7 +5,8 @@ read_bp <- function(bp_file, seqinfo) {
 # Read in Breakpoint region data and make GRanges object
 ########################################################
   bps <- read.table(bp_file, sep="\t", header=F,
-    blank.lines.skip=T, strip.white=T, fill=T)
+    blank.lines.skip=T, strip.white=T, fill=T,
+    stringsAsFactors=F)
 
   # Drop NA columns
   bps <- bps[,apply(bps, 2, function(x) sum(!is.na(x))) !=0]
@@ -24,9 +25,14 @@ read_bp <- function(bp_file, seqinfo) {
     }
   }
 
-  # Replace 2A and 2B with 2a and 2b
-  bps$BP_name<- sub('A', 'a', bps$BP_name)
-  bps$BP_name <- sub('B', 'b', bps$BP_name)
+#  # Replace 2A and 2B with 2a and 2b
+#  bps$BP_name<- sub('A', 'a', bps$BP_name)
+#  bps$BP_name <- sub('B', 'b', bps$BP_name)
+
+  # Add 'chr' to the chromosome names if necessary
+  if(sum(!grepl('chr', bps$chr)) != 0) {
+    bps$chr[!grepl('chr', bps$chr)] <- paste0('chr', bps$chr[!grepl('chr', bps$chr)])
+  }
 
   bp.gr <- makeGRangesFromDataFrame(bps, keep.extra.columns=T)
   seqlevels(bp.gr) <- seqlevels(seqinfo)

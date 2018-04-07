@@ -16,17 +16,19 @@
 #   <repmask file>
 #   <cpg_island_file>
 
-# Example: #######**********Change These *******#########
-# Rscript ./bin/full_R_analysis.R 
-#   /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/
-#   APE_METH_bin/
-#   PERM_ANALYSIS/
-#   NomLeu1_0/seq_len.txt
-#   MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/
-#   BREAKPOINTS/Gibbon_Breakpointslist_1_27_15.txt
-#   GIBBON_FEATURES/NomLeu1.0.70.genes.gtf
-#   GIBBON_FEATURES/NomLeu1.0_repmask.txt
-#   GIBBON_FEATURES/gibbon_cpgislands.gff
+# Example:
+# Rscript $my_bin_dir/full_R_analysis.R \
+#  /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/ \
+#  APE_METH_bin/ \
+#  PERM_ANALYSIS/Gibbon/ \
+#  NomLeu1_0/seq_len.txt \
+#  MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/ \
+#  BREAKPOINTS/Breakpoints_6_30_2015_Gibbon.txt \
+#  EnsemblGenes/nomLeu1_0_Ensembl_genes.txt \
+#  GIBBON_FEATURES/gibbon_rmask.txt \
+#  feature_files/Gibbon_Nleu1.0_cpgislands.gff &> PERM_ANALYSIS/Gibbon/full_analysis.out
+
+.libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.1")
 
 library(bsseq)
 condor <- TRUE  # Set variable to use cluster
@@ -45,7 +47,9 @@ cpg_isl_file <- args[9]
 #bac_file <- 'BAC_amp_on_NomLeu1.0.txt'
 
 source(paste0(bindir, 'R_meth_functions.R'))
-source(paste0(bindir, 'plot_sides.R'))
+#source(paste0(bindir, 'plot_sides.R'))
+
+print('Loaded packages and scripts')
 
 # Read in lengths of chromsomes and make seqinfo object
 #######################################################
@@ -53,8 +57,15 @@ seqinfo <- make_seqinfo(len_file, strsplit(len_file, "/")[[1]][1])
 
 # Read in CpG data and make BSeq object with all CpGs
 ############################################################
-all.bs <- make_all_bs(cpg_drive, strsplit(len_file, "/")[[1]][1], seqinfo, 0)
-cov4.bs <- all.bs[getCoverage(all.bs) >=4]
+# If the 'all_meth.Rdata' file is already there, just load it.
+# this contains all.bs and cov4.bs
+if(file.exists(paste0(outdir, 'all_meth.Rdata'))) {
+  load(paste0(outdir, 'all_meth.Rdata'))
+} else {
+  all.bs <- make_all_bs(cpg_drive, strsplit(len_file, "/")[[1]][1], seqinfo, 0)
+  cov4.bs <- all.bs[getCoverage(all.bs) >=4]
+  save(all.bs, cov4.bs, file=paste0(outdir, 'all_meth.Rdata'))
+}
 
 # Write bed files of CpG coverage and methylation
 #################################################
@@ -71,15 +82,17 @@ all.cpg.meth <- mean(mcgetMeth(cov4.bs, type='raw', what='perBase'), na.rm=T)
 # Read in Breakpoint region data and make GRanges object
 bp.gr <- read_bp(bp_file, seqinfo)
 
-# Make GRanges object of 10kb regions on each side of breaks
-# unless bp_file has 'BAC' in it or outdir name has 'inside' 
-# or the species isn't gibbon (hack)
-if(grepl('BAC', bp_file) | grepl('inside', outdir) |
-   seqinfo@genome[1] != 'NomLeu1_0') {
-  bp.lr.gr <- bp.gr
-} else {
-  bp.lr.gr <- make_lr_bp(bp.gr, 10000)
-}
+#  # Make GRanges object of 10kb regions on each side of breaks
+#  # unless bp_file has 'BAC' in it or outdir name has 'inside' 
+#  # or the species isn't gibbon (hack)
+#  if(grepl('BAC', bp_file) | grepl('inside', outdir) |
+#     seqinfo@genome[1] != 'NomLeu1_0') {
+#    bp.lr.gr <- bp.gr
+#  } else {
+#    bp.lr.gr <- make_lr_bp(bp.gr, 10000)
+#  }
+
+bp.lr.gr <- bp.gr
 
 # Write breakpoint regions to bed file
 bp.bed <- data.frame(seqnames(bp.lr.gr), start(bp.lr.gr), end(bp.lr.gr))
@@ -117,7 +130,7 @@ bp.permute <- par_permute(outdir, bindir, bp.lr.gr, bp.lr.gr, all.bs,
 # Gene analysis
 ###############
 
-gene.gr.list <- gtf2GRanges(gene_file, seqinfo, prom_size=1000)
+gene.gr.list <- UCSC2GRanges(gene_file, seqinfo, prom_size=1000)
 
 # Add methylation, number of CpGs and mean CpG coverage to each
 # of these GRanges objects
@@ -136,8 +149,15 @@ intron.permute <- par_permute(outdir, bindir, gene.gr.list$intron,
 promoter.permute <- par_permute(outdir, bindir, gene.gr.list$promoter, 
                                 bp.lr.gr, all.bs, n=1000, type='promoter',
                                 min.chr.size=min.chr.size, end.exclude=1000)
+utr5.permute <- par_permute(outdir, bindir, gene.gr.list$utr5, 
+                                bp.lr.gr, all.bs, n=1000, type='5UTR',
+                                min.chr.size=min.chr.size, end.exclude=1000)
+utr3.permute <- par_permute(outdir, bindir, gene.gr.list$utr3, 
+                                bp.lr.gr, all.bs, n=1000, type='3UTR',
+                                min.chr.size=min.chr.size, end.exclude=1000)
 gene.permute.list <- list(gene=gene.permute, exon=exon.permute, 
-                          intron=intron.permute, promoter=promoter.permute)
+                          intron=intron.permute, promoter=promoter.permute,
+                          utr5=utr5.permute, utr3=utr3.permute)
 
 #################
 # Repeat analysis
@@ -151,7 +171,7 @@ rep.gr <- make_rep_gr(rep_file, seqinfo(all.bs))
 # rep.gr <- add_meth_cpg_cov(rep.gr, all.bs)
 
 rep.gr <- condor_add_meth_cpg_cov(rep.gr, all.bs, 
-            bin, paste0(outdir, 'rep_add'), bindir)
+            dir, paste0(outdir, 'rep_add'), bindir)
 
 rep.permute <- par_permute(outdir, bindir, rep.gr, bp.lr.gr, 
                            all.bs, n=1000,
@@ -239,9 +259,9 @@ cpg_shore.gr <- make_cpg_shore(cpg_island.gr, 1000)
 # coverage to CpGisland GRanges object
 
 cpg_island.gr <- condor_add_meth_cpg_cov(cpg_island.gr, all.bs,
-            bin, paste0(outdir, 'cpg_island_add'), bindir)
+            dir, paste0(outdir, 'cpg_island_add'), bindir)
 cpg_shore.gr <- condor_add_meth_cpg_cov(cpg_shore.gr, all.bs,
-            bin, paste0(outdir, 'cpg_shore_add'), bindir)
+            dir, paste0(outdir, 'cpg_shore_add'), bindir)
 
 #cpg_island.gr <- add_meth_cpg_cov(cpg_island.gr, all.bs)
 #cpg_shore.gr <- add_meth_cpg_cov(cpg_shore.gr, all.bs)
@@ -265,19 +285,26 @@ per.results <- combine_per(bp.permute, gene.permute.list, rep.permute,
   rep.permute.list, SINE.permute.list, cpg.permute.list)
 save(per.results, file=paste0(outdir, 'per_results.Rdat'))
 
+save.image(file=paste0(outdir, 'full_analysis.dat'))
+
 #################################################
 # Plot methylation vs. coverage and cpg counts for 
 # the sides of the breakpoints
 #################################################
+source(paste0(bindir, 'plot_sides.R'))
 
 # Plots of methylation, coverage and cpgs
-if(ncol(mcols(bp.lr.gr)) >= 6) {
-  bp.lr.df <- data.frame(mcols(bp.lr.gr)[,-1])
-  names(bp.lr.df)[7] <- 'methylation'
-} else  {
+if(ncol(mcols(bp.lr.gr)) ==6) {
   bp.lr.df <- data.frame(mcols(bp.lr.gr))
-  names(bp.lr.df)[2] <- 'methylation'    ## This probably needs to be changed ##
+  names(bp.lr.df)[names(bp.lr.df) == 'meth'] <- 'methylation'
 }
+#if(ncol(mcols(bp.lr.gr)) > 6) {
+#  bp.lr.df <- data.frame(mcols(bp.lr.gr)[,-1])
+#  names(bp.lr.df)[7] <- 'methylation'
+#} else  {
+#  bp.lr.df <- data.frame(mcols(bp.lr.gr))
+#  names(bp.lr.df)[2] <- 'methylation'    ## This probably needs to be changed ##
+#}
 
 png(file=paste0(outdir, "meth_cov_plot.png"), height=480, width=480)
   plot_meth_cov(bp.lr.df)
@@ -299,7 +326,7 @@ dev.off()
 # with the same sizes as the BP regions and measuring the MAD
 # Additionally, do the same with non-adjacent regions.
 
-adj.sides <- par_permute_sides(paste0(dir,outdir), paste0(dir, bindir), bp.lr.gr, all.bs,
+adj.sides <- par_permute_sides(paste0(dir,outdir), bindir, bp.lr.gr, all.bs,
                                n=1000, adjacent=T, end.exclude=1000)
 
 disj.sides <- par_permute_sides(paste0(dir,outdir), bindir, bp.lr.gr, all.bs,
@@ -343,19 +370,19 @@ png(file=paste0(outdir, "mad_cpgs.png"), height=480, width=480*1.62)
 dev.off()
 
 # Print out permutation group p-values
-print("P-values for comparisons to groups of adjacent regions:")
+print("P-values for comparisons to groups of adjacent regions (percentage rand < obs):")
 print(paste('Methylation:', adj.sides$group.p_values$meth))
 print(paste('Coverage:', adj.sides$group.p_values$cov))
 print(paste('CpG counts:', adj.sides$group.p_values$cpgs))
 
-print("P-values for comparisons to groups of disjoint regions:")
+print("P-values for comparisons to groups of disjoint regions (percentage rand < obs):")
 print(paste('Methylation:', disj.sides$group.p_values$meth))
 print(paste('Coverage:', disj.sides$group.p_values$cov))
 print(paste('CpG counts:', disj.sides$group.p_values$cpgs))
 
 # Write out data
 #********************************************************************
-save.image(file=paste0(outdir, 'R.dat'))
+save.image(file=paste0(outdir, 'full_analysis.dat'))
 #load(paste0(outdir, 'R.dat'))
 #********************************************************************
 

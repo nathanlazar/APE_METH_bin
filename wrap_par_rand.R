@@ -39,5 +39,3 @@ sizes <- width(bp.lr.gr)
 
 rand <- par_rand(all.bs, feat.gr, breaks, sizes, lengths, end.exclude, type, reps)
 print(rand)
-
-

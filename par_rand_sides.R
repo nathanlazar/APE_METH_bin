@@ -23,7 +23,7 @@ par_rand_sides <- function(all.bs, bp.lr.mad, breaks, lengths, end.exclude,
 
   if(adjacent) {
     num <- nrow(bp.lr.mad.size)
-    sizes <- bp.lr.mad.size$left + bp.lr.mad.size$right
+    sizes <- bp.lr.mad.size$L + bp.lr.mad.size$R
     nn <- reps*num
   } else {
     num <- nrow(bp.lr.mad)
@@ -39,8 +39,7 @@ par_rand_sides <- function(all.bs, bp.lr.mad, breaks, lengths, end.exclude,
   for(i in 1:reps) {
     # Choose a set of regions randomly with probability
     # proportional to chromosome lengths
-    regions <- mclapply(sizes, get_region, breaks, lengths,
-                        end.exclude)
+    regions <- mclapply(sizes, get_region, breaks, lengths, end.exclude)
     for(j in 1:num) {
       rand_regions[(i-1)*num + j,] <- regions[[j]]
     }
@@ -49,7 +48,7 @@ par_rand_sides <- function(all.bs, bp.lr.mad, breaks, lengths, end.exclude,
   if(adjacent) {
     rand_regions.l <- rand_regions
     rand_regions.l$start <- as.numeric(rand_regions$start)
-    rand_regions.l$end <- rand_regions.l$start + bp.lr.mad.size$left
+    rand_regions.l$end <- rand_regions.l$start + bp.lr.mad.size$L
     rand_regions.r <- rand_regions
     rand_regions.r$start <- rand_regions.l$end + 1
     rand_regions.r$end <- as.numeric(rand_regions$end)
@@ -58,8 +57,8 @@ par_rand_sides <- function(all.bs, bp.lr.mad, breaks, lengths, end.exclude,
   } else {
     rand_regions$start <- as.numeric(rand_regions$start)
     rand_regions$end <- as.numeric(rand_regions$end)
-    rand.l.gr <- makeGRangesFromDataFrame(rand_regions[bp.lr.mad$side=='left',])
-    rand.r.gr <- makeGRangesFromDataFrame(rand_regions[bp.lr.mad$side=='right',])
+    rand.l.gr <- makeGRangesFromDataFrame(rand_regions[bp.lr.mad$side=='L',])
+    rand.r.gr <- makeGRangesFromDataFrame(rand_regions[bp.lr.mad$side=='R',])
     num <- length(rand.r.gr)/reps
   }
 

@@ -19,6 +19,7 @@ my_bin_dir=$dir/APE_METH_bin/
 # EMBOSS:6.6.0.0        (for CpG reports)
 
 # 1) Map bisulfite reads to gibbon, human, chimp, gorilla, orangutan and rhesus genomes.
+########################################################################################
 
 # 1.1) Raw files from gibbon sequencing runs were coppied from moloch:
 #      /home/lazar/VOK_BS_GENOME/READS/
@@ -71,17 +72,13 @@ $my_bin_dir/trim_uniform.sh ADAPT_TRIM TRIMMED 5 5
 # Gzip results
 $my_bin_dir/gzip_par.sh
 
-# 1.7) Map trimmed reads.
-mkdir MAPPED
-$my_bin_dir/align_all.sh
-
-1.8) Map each set of reads
+# 1.7) Map each set of trimmed reads
 # Gibbon
 $my_bin_dir/batch_align.sh \
    NomLeu1_0/NomLeu1_0.fa \
    TRIMMED/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz \
    TRIMMED/DNA111101LC_62_HSA_normal_NoIndex_L006_2_val_2_trim.fq.gz \
-   MAPPED_GOOD 500000 50 & &> MAPPED4/DNA111101LC_62_HSA_normal_NoIndex_L006.out
+   MAPPED_GOOD 500000 50 & &> MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006.out
 
 # Human
 $my_bin_dir/batch_align.sh \
@@ -125,10 +122,10 @@ Rscript $my_bin_dir/combine_cpg.R \
 
 # Rhesus
 $my_bin_dir/batch_align.sh \
-   rhesus_v3/rheMac3.fa \
+   rhesus_v2/rheMac2.fa \
    TRIMMED/Rhesus_DNA130327BF_25184-0_1_val_1_trim.fq.gz \
    TRIMMED/Rhesus_DNA130327BF_25184-0_2_val_2_trim.fq.gz \
-   MAPPED_GOOD/Rhesus 1000000 100 & &> MAPPED_GOOD/Rhesus_DNA130327BF.out
+   MAPPED_GOOD/Rhesus/rheMac2 1000000 100 & &> MAPPED_GOOD/rheMac2/Rhesus_DNA130327BF_v2.out
 
 # Gorilla
 $my_bin_dir/batch_align.sh \
@@ -162,11 +159,44 @@ Rscript $my_bin_dir/combine_cpg.R \
   MAPPED_GOOD/Gorilla/combined_cpg/
 rm -r MAPPED_GOOD/Gorilla/combined_cpg_tmp
 
-#** HERE **#
-# Adjust for methylation differences across read length?
+# Orangutan
+$my_bin_dir/batch_align.sh \
+   orangutan_ponAbe2/orangutan_ponAbe2.fa \
+   TRIMMED/Dunja_FCC0CGEACXX_L4_1_val_1_trim.fq.gz \
+   TRIMMED/Dunja_FCC0CGEACXX_L4_2_val_2_trim.fq.gz \
+   MAPPED_GOOD/Orangutan 1000000 100 & &> MAPPED_GOOD/Dunja_FCC0CGEACXX_L4.out
 
-# Run permutation analysis in R
+$my_bin_dir/batch_align.sh \
+   orangutan_ponAbe2/orangutan_ponAbe2.fa \
+   TRIMMED/Dunja_FCC0CGUACXX_L4_1_val_1_trim.fq.gz \
+   TRIMMED/Dunja_FCC0CGUACXX_L4_2_val_2_trim.fq.gz \
+   MAPPED_GOOD/Orangutan 1000000 100 & &> MAPPED_GOOD/Dunja_FCC0CGUACXX_L4.out
+
+$my_bin_dir/batch_align.sh \
+   orangutan_ponAbe2/orangutan_ponAbe2.fa \
+   TRIMMED/Dunja_FCD0JPEACXX_L1_1_val_1_trim.fq.gz \
+   TRIMMED/Dunja_FCD0JPEACXX_L1_2_val_2_trim.fq.gz \
+   MAPPED_GOOD/Orangutan 1000000 100 & &> MAPPED_GOOD/Dunja_FCD0JPEACXX_L1.out
+
+mkdir MAPPED_GOOD/Orangutan/combined_cpg_tmp
+Rscript $my_bin_dir/combine_cpg.R \
+  MAPPED_GOOD/Orangutan/Dunja_FCC0CGEACXX_L4_val_1_trim.cpg10/ \
+  MAPPED_GOOD/Orangutan/Dunja_FCC0CGUACXX_L4_val_1_trim.cpg10/ \
+  MAPPED_GOOD/Orangutan/combined_cpg_tmp/
+mkdir MAPPED_GOOD/Orangutan/combined_cpg
+Rscript $my_bin_dir/combine_cpg.R \
+  MAPPED_GOOD/Orangutan/combined_cpg_tmp/ \
+  MAPPED_GOOD/Orangutan/Dunja_FCD0JPEACXX_L1_val_1_trim.cpg10/ \
+  MAPPED_GOOD/Orangutan/combined_cpg/
+#** HERE **#
+rm -r MAPPED_GOOD/Orangutan/combined_cpg_tmp
+
+# 2) Run permutation analysis in R
+###########################################################################
 mkdir PERM_ANALYSIS
+
+# Remove prefixes from breakpoint names  #******FIX THIS******#
+sed ....
 
 # Gibbon
 mkdir PERM_ANALYSIS/Gibbon
@@ -176,10 +206,10 @@ Rscript $my_bin_dir/full_R_analysis.R \
   PERM_ANALYSIS/Gibbon/ \
   NomLeu1_0/seq_len.txt \
   MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/ \
-  BREAKPOINTS/Gibbon_Breakpointslist_1_27_15.txt \
-  GIBBON_FEATURES/NomLeu1.0.70.genes.gtf \
-  GIBBON_FEATURES/NomLeu1.0_repmask.txt \
-  GIBBON_FEATURES/gibbon_cpgislands.gff &> PERM_ANALYSIS/Gibbon/full_analysis.out
+  BREAKPOINTS/Breakpoints_8_5_2015_Gibbon.txt \
+  EnsemblGenes/nomLeu1_0_Ensembl_genes.txt \
+  GIBBON_FEATURES/gibbon_rmask.txt \
+  feature_files/Gibbon_Nleu1.0_cpgislands.gff &> PERM_ANALYSIS/Gibbon/full_analysis.out
 
 # Human
 mkdir PERM_ANALYSIS/Human
@@ -189,14 +219,12 @@ Rscript $my_bin_dir/full_R_analysis.R \
   PERM_ANALYSIS/Human/ \
   human_hg19_noIUPAC/lengths.txt \
   MAPPED_GOOD/Human/combined_cpg/ \
-  BREAKPOINTS/Human_Breakpointslist_1_27_15.txt \
-  human_hg19_noIUPAC/features/hg19.gtf \
-  human_hg19_noIUPAC/features/human_repmask.txt \
-  human_hg19_noIUPAC/features/hg19_cpgislands.gff &> PERM_ANALYSIS/Human/full_analysis.out
-
-# Note: Human CpG islands for hg19 were generated with newcpgreport 
-# from emboss using the default params:
-# http://emboss.sourceforge.net/apps/cvs/emboss/apps/newcpgreport.html
+  BREAKPOINTS/Breakpoints_8_5_2015_Human.txt \
+  EnsemblGenes/hg19_Ensembl_genes.txt \
+  feature_files/Human_hg19_UCSC_repmask.txt \
+  feature_files/Human_hg19_cpgislands.gff > \
+    PERM_ANALYSIS/Human/full_analysis.out 2> \ 
+    PERM_ANALYSIS/Human/full_analysis.stderr &
 
 # Chimp 
 mkdir PERM_ANALYSIS/Chimp
@@ -206,10 +234,17 @@ Rscript $my_bin_dir/full_R_analysis.R \
   PERM_ANALYSIS/Chimp/ \
   chimp_panTro4/lengths.txt \
   MAPPED_GOOD/Chimp/combined_cpg/ \
-  BREAKPOINTS/Chimp_Breakpointslist_1_27_15.txt \
-  chimp_panTro4/features/Chimp_genes.gtf \
-  chimp_panTro4/features/Chimp_rep_mask.txt \
-  chimp_panTro4/features/chimp_cpgislands.gff &> PERM_ANALYSIS/Chimp/full_analysis.out
+  BREAKPOINTS/Breakpoints_8_5_2015_Chimp.txt \
+  EnsemblGenes/panTro4_Ensembl_genes.txt \
+  feature_files/Chimp_panTro4_UCSC_repmask.txt \
+  feature_files/Chimp_panTro4_cpgislands.gff > \
+    PERM_ANALYSIS/Chimp/full_analysis.out 2> \
+    PERM_ANALYSIS/Chimp/full_analysis.stderr &
+
+# Fix names of Rhesus chromosomes
+sed 's/Chr/chr/g' rhesus_v2/lengths.txt > tmp; mv tmp rhesus_v2/lengths.txt
+sed 's/Chr/chr/g' BREAKPOINTS/Breakpoints_8_5_2015_Rhesus.txt > tmp; mv tmp BREAKPOINTS/Breakpoints_8_5_2015_Rhesus.txt
+for f in `ls MAPPED_GOOD/Rhesus/rheMac2/Rhesus_DNA130327BF_25184-0_val_1_trim.cpg10/`; do new=`echo $f | sed 's/Chr/chr/g'`; mv $f MAPPED_GOOD/Rhesus/rheMac2/Rhesus_DNA130327BF_25184-0_val_1_trim.cpg10/$new ; done
 
 # Rhesus
 mkdir PERM_ANALYSIS/Rhesus
@@ -217,122 +252,148 @@ Rscript $my_bin_dir/full_R_analysis.R \
   /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/ \
   APE_METH_bin/ \
   PERM_ANALYSIS/Rhesus/ \
-  rhesus_v7/lengths.txt \
-  MAPPED_GOOD/Rhesus/Rhesus_DNA130327BF_25184-0_val_1_trim.cpg10/ \
-###***** Missing Rhesus breakpoints ***********************************************###
-  BREAKPOINTS/Chimp_Breakpointslist_1_27_15.txt \
-  chimp_panTro4/features/Chimp_genes.gtf \
-  chimp_panTro4/features/Chimp_rep_mask.txt \
-  chimp_panTro4/features/chimp_cpgislands.gff &> PERM_ANALYSIS/Chimp/full_analysis.out
+  rhesus_v2/lengths.txt \
+  MAPPED_GOOD/Rhesus/rheMac2/Rhesus_DNA130327BF_25184-0_val_1_trim.cpg10/ \
+  BREAKPOINTS/Breakpoints_8_5_2015_Rhesus.txt \
+  EnsemblGenes/rheMac2_Ensembl_genes.txt \
+  feature_files/Rhesus_rheMac2_UCSC_repmask.txt \
+  feature_files/Rhesus_rheMac2_cpgislands.gff > \
+    PERM_ANALYSIS/Rhesus/full_analysis.out 2> \
+    PERM_ANALYSIS/Rhesus/full_analysis.stderr &
 
-# Gorilla 
-mkdir PERM_ANALYSIS/Gorilla
+# Orangutan
+mkdir PERM_ANALYSIS/Orangutan
 Rscript $my_bin_dir/full_R_analysis.R \
   /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/ \
   APE_METH_bin/ \
-  PERM_ANALYSIS/Gorilla/ \
-  gorilla_gorGor3/lengths.txt \
-  MAPPED_GOOD/Gorilla/combined_cpg/ \
-  BREAKPOINTS/Gorilla_Breakpointslist_1_27_15.txt \
-  gorilla_gorGor3/features/gorilla_EnsembGenes.gtf \
-  gorilla_gorGor3/features/gorilla_repmask.txt \
-  gorilla_gorGor3/features/gorilla_cpgislands.gff &> PERM_ANALYSIS/Gorilla/full_analysis.out
+  PERM_ANALYSIS/Orangutan/ \
+  orangutan_ponAbe2/lengths.txt \
+  MAPPED_GOOD/Orangutan/Dunja_FCD0JPEACXX_L1_val_1_trim.cpg10/ \
+  BREAKPOINTS/Breakpoints_8_5_2015_Orangutan.txt \
+  EnsemblGenes/ponAbe2_Ensembl_genes.txt \
+  feature_files/Orang_ponAbe2_UCSC_repmask.txt \
+  feature_files/Orang_ponAbe2_cpgislands.gff > \
+    PERM_ANALYSIS/Orangutan/full_analysis.out 2> \
+    PERM_ANALYSIS/Orangutan/full_analysis.stderr &
+
+# Gorilla 
+#mkdir PERM_ANALYSIS/Gorilla
+#Rscript $my_bin_dir/full_R_analysis.R \
+#  /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/ \
+#  APE_METH_bin/ \
+#  PERM_ANALYSIS/Gorilla/ \
+#  gorilla_gorGor3/lengths.txt \
+#  MAPPED_GOOD/Gorilla/combined_cpg/ \
+#  BREAKPOINTS/Breakpoints_8_5_2015_Gorilla.txt \
+#  gorilla_gorGor3/features/gorilla_EnsembGenes.gtf \
+#  gorilla_gorGor3/features/Gorilla_gorGor3_UCSC_repmask.txt \
+#  gorilla_gorGor3/features/Gorilla_gorGor3_cpgislands.gff > \
+#    PERM_ANALYSIS/Gorilla/full_analysis.out 2> \
+#    PERM_ANALYSIS/Gorilla/full_analysis.stderr &
+
+# 2 b) Summarize results of permutation analyses with 'lollipop' plots
+######################################################################
+# Plots are stored in PERMUTE_ANALYSIS
+Rscript $my_bin_dir/plot_permute_results.R
+
+# 3) Run analysis on LAVA elements in genes in gibbon and corresponding genes in other
+#    species
+########################################################################################
+
+mkdir LAVA 
+APE_METH_bin/LAVA_gibbons.R \
+   /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/ \
+   APE_METH_bin/ \
+   LAVA/Gibbon/ \
+   NomLeu1_0/seq_len.txt \
+   MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/ \
+   EnsemblGenes/nomLeu1_0_Ensembl_genes.txt \
+   LAVA/Gibbon/LAVAs.txt
 
 
-############## HERE #############
+# 4) Run BP_Scan script on all genomes 
+######################################
+# This looks at the absolute difference in the mean methylation,
+# coverage and cpg counts on either side of a sliding window of 
+# a given size. We investigate 10Kb, 100Kb, 1Mb and 10Mb windows 
+# in gibbon. This analysis is done on NLE_3.0 since it has 
+# assembled chromosomes.
 
-   human_hg19_noIUPAC/human_hg19_noIUPAC.fa \
-   TRIMMED/Human_1.fq.gz \
-   TRIMMED/Human_2.fq.gz \
-   HUMAN_MAPPED \
-   500000 \
-   50 &> Human_align.out
+# Map to NLE_3.0
+$my_bin_dir/batch_align.sh \
+   gibbon_Nleu3_0/nomLeu3.fa \
+   TRIMMED/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz \
+   TRIMMED/DNA111101LC_62_HSA_normal_NoIndex_L006_2_val_2_trim.fq.gz \
+   MAPPED_GOOD/Gibbon/nomLeu3 500000 50 > \ 
+     MAPPED_GOOD/Gibbon/nomLeu3/DNA111101LC_62_HSA_normal_NoIndex_L006.out 2> \
+     MAPPED_GOOD/Gibbon/nomLeu3/DNA111101LC_62_HSA_normal_NoIndex_L006.stderr &
+
+mkdir BP_SCAN
+mkdir BP_SCAN/Gibbon
+mkdir BP_SCAN/Gibbon/Nleu3_0
+mkdir BP_SCAN/Gibbon/Nleu3_0/10Kb_windows/
+
+$my_bin_dir/bp_scan.R APE_METH_bin/  gibbon_Nleu3_0/seq_len.txt \
+  MAPPED_GOOD/Gibbon/nomLeu3/DNA111101LC_62_HSA_normal_NoIndex_L006_val_1_trim.cpg10/ \
+  size=10000 step=1000 min_cov=4 \
+  BP_SCAN/Gibbon/Nleu3_0/10Kb_windows/ > \
+    BP_SCAN/Gibbon/Nleu3_0/10Kb_windows/out.txt 2> \
+    BP_SCAN/Gibbon/Nleu3_0/10Kb_windows/stderr.txt &
+
+ln BP_SCAN/Gibbon/Nleu3_0/10Kb_windows/all_meth.Rdata BP_SCAN/Gibbon/Nleu1_0/100Kb_windows/all_meth.Rdata
+ln BP_SCAN/Gibbon/Nleu3_0/10Kb_windows/all_meth.Rdata BP_SCAN/Gibbon/Nleu1_0/1Mb_windows/all_meth.Rdata
+ln BP_SCAN/Gibbon/Nleu3_0/10Kb_windows/all_meth.Rdata BP_SCAN/Gibbon/Nleu1_0/10Mb_windows/all_meth.Rdata
+
+$my_bin_dir/bp_scan.R APE_METH_bin/  gibbon_Nleu3_0/seq_len.txt \
+  MAPPED_GOOD/Gibbon/nomLeu3/DNA111101LC_62_HSA_normal_NoIndex_L006_val_1_trim.cpg10/ \
+  size=100000 step=1000 min_cov=4 \
+  BP_SCAN/Gibbon/Nleu3_0/100Kb_windows/ > \
+    BP_SCAN/Gibbon/Nleu3_0/100Kb_windows/out.txt 2> \
+    BP_SCAN/Gibbon/Nleu3_0/100Kb_windows/stderr.txt &
+
+$my_bin_dir/bp_scan.R APE_METH_bin/  gibbon_Nleu3_0/seq_len.txt \
+  MAPPED_GOOD/Gibbon/nomLeu3/DNA111101LC_62_HSA_normal_NoIndex_L006_val_1_trim.cpg10/ \
+  size=1000000 step=1000 min_cov=4 \
+  BP_SCAN/Gibbon/Nleu3_0/1Mb_windows/ > \
+    BP_SCAN/Gibbon/Nleu3_0/1Mb_windows/out.txt 2> \
+    BP_SCAN/Gibbon/Nleu3_0/1Mb_windows/stderr.txt &
+
+$my_bin_dir/bp_scan.R APE_METH_bin/  gibbon_Nleu3_0/seq_len.txt \
+  MAPPED_GOOD/Gibbon/nomLeu3/DNA111101LC_62_HSA_normal_NoIndex_L006_val_1_trim.cpg10/ \
+  size=10000000 step=1000 min_cov=4 \
+  BP_SCAN/Gibbon/Nleu3_0/10Mb_windows/ > \
+    BP_SCAN/Gibbon/Nleu3_0/10Mb_windows/out.txt 2> \
+    BP_SCAN/Gibbon/Nleu3_0/10Mb_windows/stderr.txt &
+
+# On NomLeu1.0
+
+ln MAPPED_GOOD/Gibbon/all_meth.Rdata BP_SCAN/Gibbon/Nleu1_0/10Kb_windows/all_meth.Rdata
+ln MAPPED_GOOD/Gibbon/all_meth.Rdata BP_SCAN/Gibbon/Nleu1_0/100Kb_windows/all_meth.Rdata
+ln MAPPED_GOOD/Gibbon/all_meth.Rdata BP_SCAN/Gibbon/Nleu1_0/1Mb_windows/all_meth.Rdata
+ln MAPPED_GOOD/Gibbon/all_meth.Rdata BP_SCAN/Gibbon/Nleu1_0/10Mb_windows/all_meth.Rdata
+
+APE_METH_bin/bp_scan.R APE_METH_bin/ NomLeu1_0/seq_len.txt \
+  MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/ \
+  size=100000 step=1000 min_cov=4 \
+  BP_SCAN/Gibbon/Nleu1_0/100Kb_windows/ > \
+    BP_SCAN/Gibbon/Nleu1_0/100Kb_windows/out.txt \
+    2> BP_SCAN/Gibbon/Nleu1_0/100Kb_windows/stderr.txt &
+
+APE_METH_bin/bp_scan.R APE_METH_bin/  NomLeu1_0/seq_len.txt \
+  MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/ \
+  size=1000000 step=1000 min_cov=4 \
+  BP_SCAN/Gibbon/Nleu1_0/1Mb_windows/ > \
+    BP_SCAN/Gibbon/Nleu1_0/1Mb_windows/out.txt \
+    2> BP_SCAN/Gibbon/Nleu1_0/1Mb_windows/stderr.txt &
+
+APE_METH_bin/bp_scan.R APE_METH_bin/  NomLeu1_0/seq_len.txt \
+  MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/ \
+  size=10000000 step=1000 min_cov=4 \
+  BP_SCAN/Gibbon/Nleu1_0/10Mb_windows/ > \
+    BP_SCAN/Gibbon/Nleu1_0/10Mb_windows/out.txt \
+    2> BP_SCAN/Gibbon/Nleu1_0/10Mb_windows/stderr.txt &
 
 
-# 1.6) Combine reads for each species
 
-# Chimp
-cat TRIMMED/4369_FCC02G0ACXX_L2_1_val_1.fq TRIMMED/4369_FCC02G0ACXX_L3_1_val_1.fq \
-  > TRIMMED/Chimp_1.fq
-cat TRIMMED/4369_FCC02G0ACXX_L2_2_val_2.fq TRIMMED/4369_FCC02G0ACXX_L3_2_val_2.fq \
-  > TRIMMED/Chimp_2.fq
-
-# Orangutan
-cat TRIMMED/Dunja_FCC0CGEACXX_L4_1_val_1.fq TRIMMED/Dunja_FCC0CGUACXX_L4_1_val_1.fq \
-  TRIMMED/Dunja_FCD0JPEACXX_L1_1_val_1.fq > TRIMMED/Orang_1.fq
-cat TRIMMED/Dunja_FCC0CGEACXX_L4_2_val_2.fq TRIMMED/Dunja_FCC0CGUACXX_L4_2_val_2.fq \
-  TRIMMED/Dunja_FCD0JPEACXX_L1_2_val_2.fq  > TRIMMED/Orang_2.fq
-
-# Gorilla
-cat TRIMMED/Gorilla_FCC02G0ACXX_L7_1_val_1.fq TRIMMED/Gorilla_FCC02G0ACXX_L8_1_val_1.fq \
-  TRIMMED/Gorilla_FCD0GB2ACXX_L6_1_val_1.fq > TRIMMED/Gorilla_1.fq
-cat TRIMMED/Gorilla_FCC02G0ACXX_L7_2_val_2.fq TRIMMED/Gorilla_FCC02G0ACXX_L8_2_val_2.fq \
-  TRIMMED/Gorilla_FCD0GB2ACXX_L6_2_val_2.fq > TRIMMED/Gorilla_2.fq
-
-# Human
-cat TRIMMED/Julia_FCC02FUACXX_L6_1_val_1.fq TRIMMED/Julia_FCC02FUACXX_L8_1_val_1.fq \
-  > TRIMMED/Human_1.fq
-cat TRIMMED/Julia_FCC02FUACXX_L6_2_val_2.fq TRIMMED/Julia_FCC02FUACXX_L8_2_val_2.fq \
-  > TRIMMED/Human_2.fq
-
-# Rhesus
-mv TRIMMED/Rhesus_DNA130327BF_25184-0_R1_val_1.fq TRIMMED/Rhesus_1.fq
-mv TRIMMED/Rhesus_DNA130327BF_25184-0_R2_val_2.fq TRIMMED/Rhesus_2.fq
-
-# Delete individual files
-rm TRIMMED/4369_FC*
-rm TRIMMED/Dunja_FC*
-rm TRIMMED/Gorilla_FC*
-rm TRIMMED/Julia_FC*
-
-# Compress
-gzip TRIMMED/*
-
-# 1.7) Align in parallel using Bsmooth
-
-# Human
-   ./gibbon_meth/batch_align.sh \
-     human_hg19_noIUPAC/human_hg19_noIUPAC.fa \
-     TRIMMED/Human_1.fq.gz \
-     TRIMMED/Human_2.fq.gz \
-     HUMAN_MAPPED \
-     500000 \
-     50 &> Human_align.out
-
-# Gorilla
-   ./gibbon_meth/batch_align.sh \
-     gorilla_gorGor3/gorilla_gorGor3.fa \
-     TRIMMED/Gorilla_1.fq.gz \
-     TRIMMED/Gorilla_2.fq.gz \
-     GORILLA_MAPPED \
-     500000 \
-     50 &> Gorilla_align.out
-
-# Chimp
-   ./gibbon_meth/batch_align.sh \
-     chimp_panTro4/chimp_panTro4.fa \
-     TRIMMED/Chimp_1.fq.gz \
-     TRIMMED/Chimp_2.fq.gz \
-     CHIMP_MAPPED \
-     500000 \
-     50 &> Chimp_align.out
-
-# Orangutan
-   ./gibbon_meth/batch_align.sh \
-     orangutan_ponAbe2/orangutan_ponAbe2.fa \
-     TRIMMED/Orang_1.fq.gz \
-     TRIMMED/Orang_2.fq.gz \
-     MAPPED \
-     ORANG_500000 \
-     50 &> Orang_align.out
-
-# Rhesus
-   ./gibbon_meth/batch_align.sh \
-     rhesus_v7/rhesus_v7.fa \
-     TRIMMED/Rhesus_1.fq.gz \
-     TRIMMED/Rhesus_2.fq.gz \
-     RHESUS_MAPPED \
-     500000 \
-     50 &> Rhesus_align.out
 
 

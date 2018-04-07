@@ -16,8 +16,8 @@ make_rep_gr <- function(rep_file, seqinfo) {
                      'rep_end', 'rep_left', 'ID')
   } else {
     peek <- strsplit(peek, split='\t')
-    if(length(peek[[1]]==17)) {
-      reps <- read.table(rep_file, stringsAsFactors=F)
+    if(length(peek[[1]])==17) {
+      reps <- read.table(rep_file, stringsAsFactors=F, sep='\t')
       names(reps) <- c('dunno1', 'dunno2', 'dunno3', 'dunno4', 'dunno5',
                        'chr', 'start', 'end', 'dunno6', 'strand',
                        'rep_class', 'rep_family', 'rep_name', 'rep_start',

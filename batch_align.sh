@@ -18,10 +18,12 @@
 #     500000
 #     50
 
+# Note: these are hard-coded and should be changed
 dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH
 bin_dir=/mnt/lustre1/users/lazar/APE_METH/POST_CRASH/APE_METH_bin
 bsmooth_dir=/mnt/lustre1/users/lazar/bin/bsmooth-align-0.8.1/bin
 bowtie_dir=/mnt/lustre1/users/lazar/bin/bowtie2-2.2.3
+
 cores=24
 genome=$1
 reads_1=$2
@@ -55,12 +57,12 @@ fi
 
 # Build Bowtie2 index:
 # after checking whether it exists
-#gen_name=`echo $genome | sed 's/.fa//'`
-#if [ ! -d $dir/$gen_name.watson.1.bt2 ]
-#  then $bsmooth_dir/bswc_bowtie2_index.pl \
-#         --bowtie2-build=$bowtie_dir/bowtie2-build \
-#         --name=$dir/$gen_name $dir/$gen_name.fa
-#fi
+gen_name=`echo $genome | sed 's/.fa//'`
+if [ ! -d $dir/$gen_name.watson.1.bt2 ]
+  then $bsmooth_dir/bswc_bowtie2_index.pl \
+         --bowtie2-build=$bowtie_dir/bowtie2-build \
+         --name=$gen_name $dir/$gen_name.fa
+fi
 
 # Split up reads 
 zcat $dir/$reads_1 | split -d -a5 -l $chunk - $dir/$out_dir/$name1.split_
@@ -82,7 +84,7 @@ mv $dir/$out_dir/$name2.split_ $dir/$out_dir/$name2.split_0
 proc=$(ls $dir/$out_dir/$name1.split* | wc -l)
 
 # Make HTCondor submit script to spawn children mapping reads
-# .. only submit up to batch jobs at a time ..
+# .. only submit up to <batch> jobs at a time ..
 j=0
 while (( j * batch < proc ))
   do
@@ -158,4 +160,4 @@ mv $dir/$out_dir/$name0/mbias.tsv $dir/$out_dir/$name0.mbias.tsv
 # dir could be an input or the current directory and 
 # the path to the executables be given by flags
 # Look at the memory requirements and adjust accordingly.
-# gibbon_meth is hard coded as the bin directory
+# APE_METH_bin is hard coded as the bin directory

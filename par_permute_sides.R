@@ -37,7 +37,7 @@ par_permute_sides <- function(wdir, bindir, bp.lr.gr, all.bs, n=1000,
 
   if(adjacent) {
     num <- nrow(bp.lr.mad.size)
-    sizes <- bp.lr.mad.size$left + bp.lr.mad.size$right
+    sizes <- bp.lr.mad.size$L + bp.lr.mad.size$R
   } else {
     num <- nrow(bp.lr.mad)
     sizes <- bp.lr.mad$size

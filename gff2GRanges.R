@@ -7,13 +7,12 @@ library(GenomicRanges)
 # Returns GRanges object cpg_islands
 
 gff2GRanges <- function(myfile="my.gff", seqinfo) {
-  gff <- read.delim(myfile, header=FALSE)
+  gff <- read.delim(myfile, header=FALSE, stringsAsFactors=F)
   colnames(gff) <- c("chr", "source", "type", "start", "end", "score", "strand", "frame",      
                      "attributes")
 
   # Add in 'chr' if necessary
-  if(sum(!grepl('chr', gff$chr))>0) gff$chr[!grepl('chr', gff$chr)] <- 
-    paste0('chr', gff$chr[!grepl('chr', gff$chr)])
+  if(sum(!grepl('chr', gff$chr))>0) gff$chr[!grepl('chr', gff$chr)] <-  paste0('chr', gff$chr[!grepl('chr', gff$chr)])
 
   len <- nrow(gff)
 

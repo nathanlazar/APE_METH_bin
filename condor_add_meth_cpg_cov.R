@@ -1,11 +1,11 @@
 # nathan dot lazar at gmail dot com
 
-# Makes files and condor script to run add_meth_cpg_cov in parallel
+# Runs script to add_meth_cpg_cov in parallel with HTCondor
 
 condor_add_meth_cpg_cov <- function(feat.gr, all.bs, dir, outdir, bindir) {
 
   outdir <- paste0(dir, outdir)
-  bindir <- paste0(dir, bindir)
+#  bindir <- paste0(dir, bindir)
 
   # If drive doesn't exist, create it
   if(!file.exists(outdir)) dir.create(outdir)

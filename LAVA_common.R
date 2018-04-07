@@ -3,15 +3,14 @@
 # nathan dot lazar at gmail dot com
 
 # Compare methylation, coverage and CpG counts of genes containing 
-# LAVA elements to genes without LAVA elements in gibbon NomLeu1.0
+# LAVA elements in gibbon to other species. 
+# Restrict analysis to genes shared in all genomes:
+# gibbon, human, chimp, rhesus & orangutan
 
-# Usage: LAVA_gibbons.R \
+# Usage: LAVA_common.R \
 #   /mnt/lustre1/users/lazar/APE_METH/POST_CRASH/ \
 #   APE_METH_bin/ \
-#   LAVA/Gibbon/ \
-#   NomLeu1_0/seq_len.txt \
-#   MAPPED_GOOD/Gibbon/DNA111101LC_62_HSA_normal_NoIndex_L006_1_val_1_trim.fq.gz/cpg10/ \
-#   EnsemblGenes/nomLeu1_0_Ensembl_genes.txt \
+#   LAVA/All/ \
 #   LAVA/Gibbon/LAVAs.txt
 
 .libPaths("/home/users/lazar/R/x86_64-redhat-linux-gnu-library/3.1")
@@ -21,9 +20,6 @@ args <- commandArgs(TRUE)
 dir <- args[1]
 bindir <- args[2]
 outdir <- args[3]
-len_file <- args[4]
-cpg_drive <- args[5]
-gene_file <- args[6]
 lava_file <- args[7]
 
 source(paste0(bindir, 'R_meth_functions.R'))
@@ -36,7 +32,7 @@ get_p <- function(obs, center, perm) {
   p
 }
 
-perm <- function(gr, num, all.bs, cov4.bs, reps=1000, parallel=T, cores=NA) {
+perm <- function(gr, num, all.bs, reps=1000, min_cpgs_w_cov=4) {
   # Function to get 1000 sets of features w/o LAVA
   # insertions and measure their mean and median
   # methylation, coverage and cpg counts
@@ -45,83 +41,45 @@ perm <- function(gr, num, all.bs, cov4.bs, reps=1000, parallel=T, cores=NA) {
   rand.gr <- gr[sample(length(gr), num*reps, replace=T)]
 
   # Add methylation, coverage, etc. info to genes
-  rand.gr <- add_meth_cpg_cov(rand.gr, all.bs, cov4.bs, parallel=T)
+  rand.gr <- add_meth_cpg_cov(rand.gr, all.bs, parallel=T, min_cov=min_cpgs_w_cov)
 
   perm.res <- data.frame(perm=1:reps, meth.mean=0, cov.mean=0, 
                          cpgs.mean=0, cpgs_w_cov.mean=0,
                          meth.median=0, cov.median=0,
                          cpgs.median=0, cpgs_w_cov.median=0)
-  if(parallel) {
-    # Import packages
-    library(doMC)
-
-    # If the number of cores isn't specified use all available
-    if(is.na(cores)) cores <- getOption("mc.cores", 2L)
-
-    # Setup parallel backend
-    registerDoMC(cores)
-
-    # Run parallel operations
-    perm.res$meth.mean <- foreach(i=1:reps) %dopar% mean(rand.gr$meth[(i*(num-1)+1):(i*num)], na.rm=T)
-    perm.res$cov.mean <- foreach(i=1:reps) %dopar% mean(rand.gr$cov[(i*(num-1)+1):(i*num)], na.rm=T)
-    perm.res$cpgs.mean <- foreach(i=1:reps) %dopar% mean(rand.gr$cpgs[(i*(num-1)+1):(i*num)], na.rm=T)
-    perm.res$cpgs_w_cov.mean <- foreach(i=1:reps) %dopar% mean(rand.gr$cpgs_w_cov[(i*(num-1)+1):(i*num)], na.rm=T)
-    perm.res$meth.median <- foreach(i=1:reps) %dopar% median(rand.gr$meth[(i*(num-1)+1):(i*num)], na.rm=T)
-    perm.res$cov.median <- foreach(i=1:reps) %dopar% median(rand.gr$cov[(i*(num-1)+1):(i*num)], na.rm=T)
-    perm.res$cpgs.median <- foreach(i=1:reps) %dopar% median(rand.gr$cpgs[(i*(num-1)+1):(i*num)], na.rm=T)
-    perm.res$cpgs_w_cov.median <- foreach(i=1:reps) %dopar% median(rand.gr$cpgs_w_cov[(i*(num-1)+1):(i*num)], na.rm=T)
-
-  } else {
-    for(i in 1:reps) {
-      perm.res$meth.mean[i] <- mean(rand.gr[(i*(num-1)+1):(i*num)]$meth, na.rm=T)
-      perm.res$cov.mean[i] <- mean(rand.gr[(i*(num-1)+1):(i*num)]$cov, na.rm=T)
-      perm.res$cpgs.mean[i] <- mean(rand.gr[(i*(num-1)+1):(i*num)]$cpgs, na.rm=T)
-      perm.res$cpgs_w_cov.mean[i] <- mean(rand.gr[(i*(num-1)+1):(i*num)]$cpgs_w_cov, na.rm=T)
-      perm.res$meth.median[i] <- median(rand.gr[(i*(num-1)+1):(i*num)]$meth, na.rm=T)
-      perm.res$cov.median[i] <- median(rand.gr[(i*(num-1)+1):(i*num)]$cov, na.rm=T)
-      perm.res$cpgs.median[i] <- median(rand.gr[(i*(num-1)+1):(i*num)]$cpgs, na.rm=T)
-      perm.res$cpgs_w_cov.median[i] <- median(rand.gr[(i*(num-1)+1):(i*num)]$cpgs_w_cov, na.rm=T)
-    }
+  for(i in 1:reps) {
+    perm.res$meth.mean[i] <- mean(rand.gr[(i*(num-1)+1):(i*num)]$meth, na.rm=T)
+    perm.res$cov.mean[i] <- mean(rand.gr[(i*(num-1)+1):(i*num)]$cov, na.rm=T)
+    perm.res$cpgs.mean[i] <- mean(rand.gr[(i*(num-1)+1):(i*num)]$cpgs, na.rm=T)
+    perm.res$cpgs_w_cov.mean[i] <- mean(rand.gr[(i*(num-1)+1):(i*num)]$cpgs_w_cov, na.rm=T)
+    perm.res$meth.median[i] <- median(rand.gr[(i*(num-1)+1):(i*num)]$meth, na.rm=T)
+    perm.res$cov.median[i] <- median(rand.gr[(i*(num-1)+1):(i*num)]$cov, na.rm=T)
+    perm.res$cpgs.median[i] <- median(rand.gr[(i*(num-1)+1):(i*num)]$cpgs, na.rm=T)
+    perm.res$cpgs_w_cov.median[i] <- median(rand.gr[(i*(num-1)+1):(i*num)]$cpgs_w_cov, na.rm=T)
   }
   return(perm.res)
 }
 
-# Read in lengths of chromsomes and make seqinfo object
-#######################################################
-seqinfo <- make_seqinfo(len_file, strsplit(len_file, "/")[[1]][1])
-
-# Read in CpG data and make BSeq object for all CpGs
-############################################################
-# If the 'all_meth.Rdata' file is already there, just load it.
-if(file.exists(paste0(outdir, 'all_meth.Rdata'))) {
-  load(paste0(outdir, 'all_meth.Rdata'))
-} else {
-  all.bs <- make_all_bs(cpg_drive, strsplit(len_file, "/")[[1]][1], seqinfo, 0)
-  save(all.bs, file=paste0(outdir, 'all_meth.Rdata'))
-}
-
-# Subset CpGs with coverage of at least 4
-#########################################
-cov4.bs <- all.bs[getCoverage(all.bs) > 3]
+# Read in lengths of chromsomes and make seqinfo objects for each genome
+########################################################################
+gibbon.seqinfo <- make_seqinfo('NomLeu1_0/seq_len.txt', 'NomLeu1_0')
+human.seqinfo <- make_seqinfo('human_hg19_noIUPAC/lengths.txt', 'hg19')
+chimp.seqinfo <- make_seqinfo('chimp_panTro4/lengths.txt', 'panTro4')
+rhesus.seqinfo <- make_seqinfo('rhesus_v2/lengths.txt', 'rheMac2')
+orangutan.seqinfo <- make_seqinfo('orangutan_ponAbe2/lengths.txt', 'ponAbe2')
 
 # Read in genes
 ###############
-if(grepl('.gtf', gene_file)) {
-  gene.gr.list <- gtf2GRanges(gene_file, seqinfo, prom_size=1000)
-} else {
-  gene.gr.list <- UCSC2GRanges(gene_file, seqinfo, prom_size=1000, filter=F)
-}
-
-# Only keep the first isoform 'name' is isoform_id 'symbol' is gene_id
-gene.gr.list$gene <- gene.gr.list$gene[!duplicated(gene.gr.list$gene$symbol)]
-gene.gr.list$promoter <- gene.gr.list$promoter[gene.gr.list$promoter$name %in% gene.gr.list$gene$name]
-gene.gr.list$utr5 <- gene.gr.list$utr5[gene.gr.list$utr5$name %in% gene.gr.list$gene$name]
-gene.gr.list$exon <- gene.gr.list$exon[gene.gr.list$exon$name %in% gene.gr.list$gene$name]
-gene.gr.list$intron <- gene.gr.list$intron[gene.gr.list$intron$name %in% gene.gr.list$gene$name]
-gene.gr.list$utr3 <- gene.gr.list$utr3[gene.gr.list$utr3$name %in% gene.gr.list$gene$name]
-
-gene.gr.list <- lapply(gene.gr.list, add_meth_cpg_cov, all.bs, cov4.bs, parallel=T)
-save(gene.gr.list, file=paste0(outdir, 'gene_gr_list.Rdata'))
+gibbon.gene.gr.list <- UCSC2GRanges('EnsemblGenes/nomLeu1_0_Ensembl_genes.txt', 
+                                    gibbon.seqinfo, prom_size=1000, filter=F)
+human.gene.gr.list <- UCSC2GRanges('EnsemblGenes/hg19_Ensembl_genes.txt', 
+                                    human.seqinfo, prom_size=1000, filter=F)
+chimp.gene.gr.list <- UCSC2GRanges('EnsempanTro4_Ensembl_genesblGenes/.txt', 
+                                   chimp.seqinfo, prom_size=1000, filter=F)
+rhesus.gene.gr.list <- UCSC2GRanges('EnsemblGenes/rheMac2_Ensembl_genes.txt', 
+                                    rhesus.seqinfo, prom_size=1000, filter=F)
+orangutan.gene.gr.list <- UCSC2GRanges('EnsemblGenes/ponAbe2_Ensembl_genes.txt', 
+                                       orangutan.seqinfo, prom_size=1000, filter=F)
 
 # Reorder if necessary
 gene.gr.list <- list(promoter = gene.gr.list$promoter,
@@ -147,21 +105,7 @@ seqlevels(lava.gr) <- seqlevels(seqinfo)
 seqlengths(lava.gr) <- seqlengths(seqinfo)
 lava.gr <- sort(lava.gr)
 
-# Get methylation, coverage & CpG count for all LAVAs
-#####################################################
-#lava.gr <- add_meth_cpg_cov(lava.gr, all.bs, cov4.bs, parallel=T)
-
-# Overlap LAVAs w/ genes
-########################
-#lava_in_gene <- list()
-#lava_in_gene$promoter <- GenomicRanges::subsetByOverlaps(lava.gr, gene.gr.list$promoter, ignore.strand=T)
-#lava_in_gene$gene <- GenomicRanges::subsetByOverlaps(lava.gr, gene.gr.list$gene, ignore.strand=T)
-#lava_in_gene$utr5 <- GenomicRanges::subsetByOverlaps(lava.gr, gene.gr.list$utr5, ignore.strand=T)
-#lava_in_gene$exon <- GenomicRanges::subsetByOverlaps(lava.gr, gene.gr.list$exon, ignore.strand=T)
-#lava_in_gene$intron <- GenomicRanges::subsetByOverlaps(lava.gr, gene.gr.list$intron, ignore.strand=T)
-#lava_in_gene$utr3 <- GenomicRanges::subsetByOverlaps(lava.gr, gene.gr.list$utr3, ignore.strand=T)
-
-# Overlap genes w/ LAVAs
+# Overlap gibbon genes w/ LAVAs
 ########################
 gene_w_lava <- list()
 gene_w_lava$promoter <- GenomicRanges::subsetByOverlaps(gene.gr.list$promoter, lava.gr, ignore.strand=T)
@@ -172,6 +116,28 @@ gene_w_lava$intron <- GenomicRanges::subsetByOverlaps(gene.gr.list$intron, lava.
 gene_w_lava$utr3 <- GenomicRanges::subsetByOverlaps(gene.gr.list$utr3, lava.gr, ignore.strand=T)
 
 gene_w_lava$promoter <- trim(gene_w_lava$promoter)
+
+
+
+gene.gr.list <- lapply(gene.gr.list, add_meth_cpg_cov, all.bs, parallel=T, min_cov=4)
+save(gene.gr.list, file=paste0(outdir, 'gene_gr_list.Rdata'))
+
+
+# Read in CpG data and make BSeq object for all CpGs
+############################################################
+# If the 'all_meth.Rdata' file is already there, just load it.
+if(file.exists(paste0(outdir, 'all_meth.Rdata'))) {
+  load(paste0(outdir, 'all_meth.Rdata'))
+} else {
+  all.bs <- make_all_bs(cpg_drive, strsplit(len_file, "/")[[1]][1], seqinfo, 0)
+  save(all.bs, file=paste0(outdir, 'all_meth.Rdata'))
+}
+
+# Subset CpGs with coverage of at least 4
+#########################################
+cov4.bs <- all.bs[getCoverage(all.bs) > 3]
+
+
 
 # Write out the list of gene names and symbols that contain LAVA elements
 # record gene name, symbol and where the LAVA inserted (intron, exon, etc.)
@@ -193,14 +159,46 @@ lava_genes$type <- gsub('^,', '', lava_genes$type)
 write.table(lava_genes, file=paste0(outdir, 'genes_w_lava.txt'), 
             sep='\t', quote=F, row.names=F)
 
-# Add list of genes with insertions anywhere to gene_w_lava
-w_insert.gr.list <- lapply(gene.gr.list, function(x) x[x$name %in% unique(lava_genes$name)])
-names(w_insert.gr.list) <- paste0(names(w_insert.gr.list), '_w_gene_insert')
+# Subset these genes to just genes present in other genomes 
+# (human, chimp, rhesus, orangutan)
+gibbon.genes <- gene.gr.list
+load('LAVA/Human/gene_gr_list.Rdata')
+human.genes <- gene.gr.list
+for(x in names(human.genes)) human.genes[[x]]$symbol <- toupper(human.genes[[x]]$symbol)
+load('LAVA/Chimp/gene_gr_list.Rdata')
+chimp.genes <- gene.gr.list
+for(x in names(chimp.genes)) chimp.genes[[x]]$symbol <- toupper(chimp.genes[[x]]$symbol)
+load('LAVA/Rhesus/gene_gr_list.Rdata')
+rhesus.genes <- gene.gr.list
+for(x in names(rhesus.genes)) rhesus.genes[[x]]$symbol <- toupper(rhesus.genes[[x]]$symbol)
+load('LAVA/Orangutan/gene_gr_list.Rdata')
+orangutan.genes <- gene.gr.list
+for(x in names(orangutan.genes)) orangutan.genes[[x]]$symbol <- toupper(orangutan.genes[[x]]$symbol)
+gene.gr.list <- gibbon.genes
 
-# Combine lists of elements w/ insertions and elements of genes w/ insertions anywhere
-gene_w_lava <- c(gene_w_lava, w_insert.gr.list)
-save(gene_w_lava, file=paste0(outdir, 'gene_w_lava.Rdata'))
+lava_in_all <- list()
+for(type in names(gibbon.genes)) {
+  lava_in_all[[type]] <- lava_genes$symbol %>% toupper %>%
+  base::intersect(human.genes[[type]]$symbol) %>%
+  base::intersect(chimp.genes[[type]]$symbol) %>%
+  base::intersect(rhesus.genes[[type]]$symbol) %>%
+  base::intersect(orangutan.genes[[type]]$symbol)
+}
 
+gene_w_lava <- list()
+gene_w_lava$promoter <- GenomicRanges::subsetByOverlaps(gene.gr.list$promoter, lava.gr, ignore.strand=T)
+gene_w_lava$gene <- GenomicRanges::subsetByOverlaps(gene.gr.list$gene, lava.gr, ignore.strand=T)
+gene_w_lava$utr5 <- GenomicRanges::subsetByOverlaps(gene.gr.list$utr5, lava.gr, ignore.strand=T)
+gene_w_lava$exon <- GenomicRanges::subsetByOverlaps(gene.gr.list$exon, lava.gr, ignore.strand=T)
+gene_w_lava$intron <- GenomicRanges::subsetByOverlaps(gene.gr.list$intron, lava.gr, ignore.strand=T)
+gene_w_lava$utr3 <- GenomicRanges::subsetByOverlaps(gene.gr.list$utr3, lava.gr, ignore.strand=T)
+
+gene_w_lava.all <- list()
+for(type in names(gene_w_lava)) {
+  gene_w_lava.all[[type]] <- unique(gene_w_lava[[type]][toupper(gene_w_lava[[type]]$symbol) %in% lava_in_all[[type]]])
+}
+
+##########*************HERE*********************##############
 
 # Get genes not in LAVAs
 ########################
@@ -217,35 +215,33 @@ gene_wo_lava$gene <- trim(gene_wo_lava$gene)
 gene_wo_lava$utr5 <- trim(gene_wo_lava$utr5)
 gene_wo_lava$exon <- trim(gene_wo_lava$exon)
 
-save(gene_wo_lava, file=paste0(outdir, 'gene_wo_lava.Rdata'))
-
 # Get mean and median methylation, coverage and CpG counts for genes 
 # with and without LAVA insertions
 ####################################################################
 res <- list()
 
-res$w_lava.mean <- data.frame(type=names(gene_w_lava))
+res$w_lava.mean <- data.frame(type=names(gene.gr.list))
 res$w_lava.mean$counts <- sapply(gene_w_lava, length)
 res$w_lava.mean$meth <- sapply(gene_w_lava, function(x) mean(x$meth, na.rm=T))
 res$w_lava.mean$cov <- sapply(gene_w_lava, function(x) mean(x$cov, na.rm=T))
 res$w_lava.mean$cpgs <- sapply(gene_w_lava, function(x) mean(x$cpgs, na.rm=T))
 res$w_lava.mean$cpgs_w_cov <- sapply(gene_w_lava, function(x) mean(x$cpgs_w_cov, na.rm=T))
 
-res$wo_lava.mean <- data.frame(type=names(gene_wo_lava))
+res$wo_lava.mean <- data.frame(type=names(gene.gr.list))
 res$wo_lava.mean$counts <- sapply(gene_wo_lava, length)
 res$wo_lava.mean$meth <- sapply(gene_wo_lava, function(x) mean(x$meth, na.rm=T))
 res$wo_lava.mean$cov <- sapply(gene_wo_lava, function(x) mean(x$cov, na.rm=T))
 res$wo_lava.mean$cpgs <- sapply(gene_wo_lava, function(x) mean(x$cpgs, na.rm=T))
 res$wo_lava.mean$cpgs_w_cov <- sapply(gene_wo_lava, function(x) mean(x$cpgs_w_cov, na.rm=T))
 
-res$w_lava.median <- data.frame(type=names(gene_w_lava))
+res$w_lava.median <- data.frame(type=names(gene.gr.list))
 res$w_lava.median$counts <- sapply(gene_w_lava, length)
 res$w_lava.median$meth <- sapply(gene_w_lava, function(x) median(x$meth, na.rm=T))
 res$w_lava.median$cov <- sapply(gene_w_lava, function(x) median(x$cov, na.rm=T))
 res$w_lava.median$cpgs <- sapply(gene_w_lava, function(x) median(x$cpgs, na.rm=T))
 res$w_lava.median$cpgs_w_cov <- sapply(gene_w_lava, function(x) median(x$cpgs_w_cov, na.rm=T))
 
-res$wo_lava.median <- data.frame(type=names(gene_wo_lava))
+res$wo_lava.median <- data.frame(type=names(gene.gr.list))
 res$wo_lava.median$counts <- sapply(gene_wo_lava, length)
 res$wo_lava.median$meth <- sapply(gene_wo_lava, function(x) median(x$meth, na.rm=T))
 res$wo_lava.median$cov <- sapply(gene_wo_lava, function(x) median(x$cov, na.rm=T))
@@ -255,105 +251,64 @@ res$wo_lava.median$cpgs_w_cov <- sapply(gene_wo_lava, function(x) median(x$cpgs_
 # Get mean and median methylation, coverage & cpgs of genic sequence not counting LAVA
 # instertions 
 ######################################################################################
-types <- c(names(gene.gr.list), 'promoter_w_gene_insert', 'gene_w_gene_insert', 
+types <- c(names(gene.gr.list), 'prom_w_gene_insert', 'gene_w_gene_insert', 
           'utr5_w_gene_insert', 'exon_w_gene_insert', 
           'intron_w_gene_insert', 'utr3_w_gene_insert')    
 
 res$minus_lava.mean <- data.frame(type=types)
 res$minus_lava.median <- data.frame(type=types)
 
-# Split each list of gene elements by their name.
-split.list <- lapply(gene_w_lava, function(x) split(x, x$name))
+w_insert.gr.list <- lapply(gene.gr.list, function(x) x[x$name %in% unique(lava_genes$name)])
 
-# Remove LAVA sequences. This splits genes, etc. in half usually.
 # Set diff with '*' stranded elements doesn't perform as expected. Run it twice with 
 # '+' and '-' for the lava elements
+
 strand(lava.gr) <- '+' 
-minus_lava <- lapply(split.list, function(x) lapply(x, GenomicRanges::setdiff, lava.gr))
-strand(lava.gr) <- '-'
-minus_lava <- lapply(minus_lava, function(x) lapply(x, GenomicRanges::setdiff, lava.gr))
+minus_lava <- c(lapply(gene_w_lava, GenomicRanges::setdiff, lava.gr),
+                lapply(w_insert.gr.list, GenomicRanges::setdiff, lava.gr))
+strand(lava.gr) <- '-' 
+minus_lava <- lapply(minus_lava, GenomicRanges::setdiff, lava.gr)
+strand(lava.gr) <- '*'
 
-# Remove empty ranges
-for(i in 1:length(minus_lava)) {
-  minus_lava[[i]] <- minus_lava[[i]][sapply(minus_lava$exon, function(x) length(width(x))>0)]
-}
+names(minus_lava) <- types
 
-minus_lava <- lapply(minus_lava, GRangesList)
-minus_lava <- lapply(minus_lava, unlist, use.names=T)
+minus_lava <- lapply(minus_lava, add_meth_cpg_cov, all.bs, parallel=T, min_cov=4)
+save(minus_lava, file=paste0(outdir, 'minus_lava.Rdata'))
 
-minus_lava <- lapply(minus_lava, add_meth_cpg_cov, all.bs, cov4.bs, parallel=F)
+# Add back in the gene name and symbol for genes etc. that got split by LAVA elements ?
+###*** Figure out how to get measurements for the whole gene even though it's now cut in two by ***###
+###*** the lava coordinates... use group_by?                                                    ***###
+# I decided not to do this. We're looking means across elements, so this shouldn't make that much 
+# of a difference.
 
-# Add name as metadata
-for(i in 1:length(minus_lava)) {
-  minus_lava[[i]]$name <- names(minus_lava[[i]])
-}
+res$minus_lava.mean$counts <- sapply(minus_lava, length)
+res$minus_lava.mean$meth <- sapply(minus_lava, function(x) mean(x$meth, na.rm=T))
+res$minus_lava.mean$cov <- sapply(minus_lava, function(x) mean(x$cov, na.rm=T))
+res$minus_lava.mean$cpgs <- sapply(minus_lava, function(x) mean(x$cpgs, na.rm=T))
+res$minus_lava.mean$cpgs_w_cov <- sapply(minus_lava, function(x) mean(x$cpgs_w_cov, na.rm=T))
 
-# Summarize meth, cov, cpgs, by name
-minus_lava_sum <- list()
-for(i in 1:length(minus_lava)) {
-  minus_lava_sum[[names(minus_lava)[i]]] <- mcols(minus_lava[[i]]) %>% 
-    data.frame %>%
-    tbl_df %>%
-    group_by(name) %>%
-    summarise(meth=sum(meth*cpgs_w_cov)/sum(cpgs_w_cov),
-              cov=sum(cov*cpgs)/sum(cpgs),
-              cpgs_w_cov=sum(cpgs_w_cov), 
-              cpgs=sum(cpgs))
-}
-
-save(minus_lava, minus_lava_sum, file=paste0(outdir, 'minus_lava.Rdata'))
-
-res$minus_lava.mean$counts <- sapply(minus_lava_sum, nrow)
-res$minus_lava.mean$meth <- sapply(minus_lava_sum, function(x) mean(x$meth, na.rm=T))
-res$minus_lava.mean$cov <- sapply(minus_lava_sum, function(x) mean(x$cov, na.rm=T))
-res$minus_lava.mean$cpgs <- sapply(minus_lava_sum, function(x) mean(x$cpgs, na.rm=T))
-res$minus_lava.mean$cpgs_w_cov <- sapply(minus_lava_sum, function(x) mean(x$cpgs_w_cov, na.rm=T))
-
-res$minus_lava.median$counts <- sapply(minus_lava_sum, nrow)
-res$minus_lava.median$meth <- sapply(minus_lava_sum, function(x) median(x$meth, na.rm=T))
-res$minus_lava.median$cov <- sapply(minus_lava_sum, function(x) median(x$cov, na.rm=T))
-res$minus_lava.median$cpgs <- sapply(minus_lava_sum, function(x) median(x$cpgs, na.rm=T))
-res$minus_lava.median$cpgs_w_cov <- sapply(minus_lava_sum, function(x) median(x$cpgs_w_cov, na.rm=T))
+res$minus_lava.median$counts <- sapply(minus_lava, length)
+res$minus_lava.median$meth <- sapply(minus_lava, function(x) median(x$meth, na.rm=T))
+res$minus_lava.median$cov <- sapply(minus_lava, function(x) median(x$cov, na.rm=T))
+res$minus_lava.median$cpgs <- sapply(minus_lava, function(x) median(x$cpgs, na.rm=T))
+res$minus_lava.median$cpgs_w_cov <- sapply(minus_lava, function(x) median(x$cpgs_w_cov, na.rm=T))
 
 # Run permutations
 ##################
 perm.list <- list()
-reps <- 1000
-parallel <- T
-cores <- 24
-perm.list$promoter <- perm(gene_wo_lava$promoter, nrow(minus_lava_sum$promoter), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$gene <- perm(gene_wo_lava$gene, nrow(minus_lava_sum$gene), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$utr5 <- perm(gene_wo_lava$utr5, nrow(minus_lava_sum$utr5), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$exon <- perm(gene_wo_lava$exon, nrow(minus_lava_sum$exon), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$intron <- perm(gene_wo_lava$intron, nrow(minus_lava_sum$intron), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$utr3 <- perm(gene_wo_lava$utr3, nrow(minus_lava_sum$utr3), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-
-perm.list$promoter_w_gene_insert <- perm(gene_wo_lava$promoter, 
-  nrow(minus_lava_sum$promoter_w_gene_insert), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$gene_w_gene_insert <- perm(gene_wo_lava$gene, 
-  nrow(minus_lava_sum$gene_w_gene_insert), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$utr5_w_gene_insert <- perm(gene_wo_lava$utr5, 
-  nrow(minus_lava_sum$utr5_w_gene_insert), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$exon_w_gene_insert <- perm(gene_wo_lava$exon, 
-  nrow(minus_lava_sum$exon_w_gene_insert), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$intron_w_gene_insert <- perm(gene_wo_lava$intron, 
-  nrow(minus_lava_sum$intron_w_gene_insert), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-perm.list$utr3_w_gene_insert <- perm(gene_wo_lava$utr3, 
-  nrow(minus_lava_sum$utr3_w_gene_insert), all.bs, cov4.bs, reps=reps, parallel=parallel, cores=cores)
-
-# Convert columns of perm list to vectors 
-for(i in 1:length(perm.list)) {
-  for (j in 1:ncol(perm.list[[i]])) {
-    perm.list[[i]][,j] <- unlist(perm.list[[i]][j])
-  }
-}
+perm.list$promoter <- perm(gene_wo_lava$promoter, length(gene_w_lava$promoter), all.bs, reps=1000, min_cpgs_w_cov=4)
+perm.list$gene <- perm(gene_wo_lava$gene, length(gene_w_lava$gene), all.bs, reps=1000, min_cpgs_w_cov=4)
+perm.list$utr5 <- perm(gene_wo_lava$utr5, length(gene_w_lava$utr5), all.bs, reps=1000, min_cpgs_w_cov=4)
+perm.list$exon <- perm(gene_wo_lava$exon, length(gene_w_lava$exon), all.bs, reps=1000, min_cpgs_w_cov=4)
+perm.list$intron <- perm(gene_wo_lava$intron, length(gene_w_lava$intron), all.bs, reps=1000, min_cpgs_w_cov=4)
+perm.list$utr3 <- perm(gene_wo_lava$utr3, length(gene_w_lava$utr3), all.bs, reps=1000, min_cpgs_w_cov=4)
 
 save(res, perm.list, file=paste0(outdir, 'perm_results.Rdata'))
 
 # Get p-values
 ###############
-res$perm_stats <- data.frame(type=types)
-res$p_value_lava <- data.frame(type=types)
+res$perm_stats <- data.frame(type=names(gene.gr.list))
+res$p_value_lava <- data.frame(type=names(gene.gr.list))
 res$p_value_minus_lava <- data.frame(type=types)
 
 res$perm_stats$meth.mean <- sapply(perm.list, function(x) mean(x$meth.mean, na.rm=T))
