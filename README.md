@@ -1,2 +1,3 @@
 # APE_METH_bin
-Scripts to run permutation analysis of methylation levels in apes.
+Various scripts to run analyses for Lazar et al. 2018. 
+ALL_STEPS walks though each of the analyses.
